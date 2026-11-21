@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Bank Nilai Rapor</title>
+<style>
+:root{--bg:#f5f7f4;--card:#fff;--ink:#1d2b24;--mut:#66756c;--line:#dbe3dd;--pri:#1f6b4f;--pri2:#e3f1ea;--bad:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#121a16;--card:#1a2420;--ink:#e6efe9;--mut:#93a39a;--line:#2b3a33;--pri:#4fb88a;--pri2:#1f332a;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 Georgia,'Times New Roman',serif;background:var(--bg);color:var(--ink)}
+h1,h2,h3,button,input,select,th,.nav{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.hide{display:none!important}
+#login{max-width:340px;margin:18vh auto;padding:28px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+#login h1{margin:0 0 4px;font-size:22px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:14px}
+button{padding:9px 14px;border:0;border-radius:6px;background:var(--pri);color:#fff;font-size:14px;cursor:pointer}
+button.alt{background:var(--pri2);color:var(--pri)}button.del{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+#app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+aside{background:var(--card);border-right:1px solid var(--line);padding:18px 14px;overflow:auto}
+aside h2{font-size:17px;margin:0 0 14px}
+.nav{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);padding:7px 10px;border-radius:6px;font-size:14px}
+.nav:hover,.nav.on{background:var(--pri2);color:var(--pri)}
+.yr{font-weight:600;margin:14px 0 2px;color:var(--mut);font-size:13px}
+main{padding:22px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:110px}
+label{font:12px system-ui;color:var(--mut)}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th{background:var(--pri2);color:var(--pri);font-size:12.5px}td.l,th.l{text-align:left}
+td input{padding:3px 5px;width:56px;text-align:center}td input.nm{width:230px;text-align:left}
+#msg{font:14px system-ui;margin:8px 0}.err{color:var(--bad)}.ok{color:var(--pri)}
+@media(max-width:760px){#app{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+
+<section id="login">
+  <h1>Bank Nilai Rapor</h1>
+  <p style="color:var(--mut);margin:0 0 16px">Khusus admin</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <p id="lmsg" class="err" style="font:13px system-ui;min-height:18px"></p>
+  <button id="btnLogin" style="width:100%">Masuk</button>
+</section>
+
+<div id="app" class="hide">
+  <aside>
+    <h2>Bank Nilai Rapor</h2>
+    <button class="nav on" data-go="upload">+ Unggah rekap PDF</button>
+    <div id="menu"></div>
+    <button class="nav" id="btnOut" style="margin-top:20px;color:var(--bad)">Keluar</button>
+  </aside>
+  <main>
+    <div id="msg"></div>
+
+    <div id="vUpload">
+      <div class="card">
+        <h3 style="margin-top:0">Unggah rekapitulasi nilai (PDF)</h3>
+        <p style="color:var(--mut);margin-top:0">PDF hanya dibaca di browser Anda untuk diambil nilainya, tidak disimpan.</p>
+        <input type="file" id="file" accept="application/pdf">
+      </div>
+      <div id="preview" class="hide card">
+        <div class="row">
+          <div><label>Tahun ajaran</label><input id="pTahun"></div>
+          <div><label>Semester</label><input id="pSem"></div>
+          <div><label>Kelas</label><input id="pKelas"></div>
+          <div style="flex:0"><button id="btnSave">Simpan</button></div>
+        </div>
+        <p style="color:var(--mut)">Periksa hasil baca di bawah. Nilai bisa diperbaiki langsung sebelum disimpan. Jika data kelas/semester yang sama sudah ada, data lama akan diganti.</p>
+        <div class="wrap"><table id="pTable"></table></div>
+      </div>
+    </div>
+
+    <div id="vSet" class="hide">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h3 id="sTitle" style="margin:0"></h3>
+          <div style="flex:0"><button class="del" id="btnDel">Hapus</button></div>
+        </div>
+        <div class="wrap" style="margin-top:12px"><table id="sTable"></table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* Hanya URL web app yang ada di sini. Password & ID spreadsheet tersimpan di server (Script Properties). */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
+const DEFAULT_MAPEL = ['Agama','PKn','BI','MTK','SBdP','PJOK','Inggris','MeKarSi'];
+const $ = id => document.getElementById(id);
+let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
+
+async function api(action, data = {}) {
+  const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, token, ...data }) }); // text/plain: tanpa preflight CORS
+  const j = await r.json();
+  if (!j.ok && /Sesi/.test(j.error || '')) { logout(); }
+  return j;
+}
+function say(t, cls) { $('msg').className = cls || ''; $('msg').textContent = t || ''; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- Login ---------- */
+async function doLogin() {
+  $('lmsg').textContent = '';
+  $('btnLogin').disabled = true;
+  try {
+    const j = await api('login', { password: $('pw').value });
+    if (j.ok) { token = j.token; sessionStorage.setItem('tk', token); $('pw').value = ''; start(); }
+    else $('lmsg').textContent = j.error;
+  } catch (e) { $('lmsg').textContent = 'Tidak bisa terhubung ke server.'; }
+  $('btnLogin').disabled = false;
+}
+function logout() { if (token) api('logout'); token = ''; sessionStorage.removeItem('tk'); $('app').classList.add('hide'); $('login').classList.remove('hide'); }
+$('btnLogin').onclick = doLogin;
+$('pw').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+$('btnOut').onclick = logout;
+
+async function start() {
+  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  await loadMenu(); show('upload');
+}
+
+/* ---------- Menu ---------- */
+async function loadMenu() {
+  const j = await api('list');
+  sets = j.ok ? j.sets : [];
+  const byYear = {};
+  sets.forEach(s => (byYear[s.tahun] = byYear[s.tahun] || []).push(s));
+  $('menu').innerHTML = Object.keys(byYear).sort().reverse().map(y =>
+    `<div class="yr">Nilai Rapor ${esc(y)}</div>` +
+    byYear[y].sort((a, b) => (a.semester + a.kelas).localeCompare(b.semester + b.kelas)).map(s =>
+      `<button class="nav" data-t="${esc(s.tahun)}" data-s="${esc(s.semester)}" data-k="${esc(s.kelas)}">Semester ${esc(s.semester)} · Kelas ${esc(s.kelas)}</button>`).join('')
+  ).join('') || '<p style="color:var(--mut);font-size:13px">Belum ada data tersimpan.</p>';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.nav'); if (!b) return;
+  document.querySelectorAll('.nav').forEach(x => x.classList.remove('on')); b.classList.add('on');
+  if (b.dataset.go) show('upload'); else if (b.dataset.t) openSet(b.dataset.t, b.dataset.s, b.dataset.k);
+});
+function show(v) { $('vUpload').classList.toggle('hide', v !== 'upload'); $('vSet').classList.toggle('hide', v !== 'set'); say(''); }
+
+/* ---------- Baca PDF ---------- */
+$('file').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  say('Membaca PDF…');
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+    let lines = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const tc = await (await pdf.getPage(p)).getTextContent();
+      const rows = [];
+      tc.items.filter(i => i.str.trim()).forEach(i => {
+        const y = i.transform[5], x = i.transform[4];
+        let r = rows.find(r => Math.abs(r.y - y) < 3);
+        if (!r) rows.push(r = { y, items: [] });
+        r.items.push({ x, s: i.str.trim() });
+      });
+      rows.sort((a, b) => b.y - a.y).forEach(r => lines.push(r.items.sort((a, b) => a.x - b.x).map(i => i.s).join(' ')));
+    }
+    parsed = parseLines(lines);
+    if (!parsed.rows.length) { say('Tidak ada baris nilai yang terbaca. Pastikan PDF berformat teks (bukan hasil scan).', 'err'); return; }
+    $('pTahun').value = parsed.tahun; $('pSem').value = parsed.semester; $('pKelas').value = parsed.kelas;
+    renderPreview(); $('preview').classList.remove('hide');
+    say(`${parsed.rows.length} siswa terbaca. Periksa lalu simpan.`, 'ok');
+  } catch (err) { say('Gagal membaca PDF: ' + err.message, 'err'); }
+};
+
+function parseLines(lines) {
+  const all = lines.join('\n');
+  const tahun = (all.match(/(\d{4})\s*\/\s*(\d{4})/) || []).slice(1, 3).join('/');
+  const semester = (all.match(/SEMESTER\s*(\d)/i) || [])[1] || '';
+  const kelas = ((all.match(/RAPOR\s+([^\n]+)/i) || [])[1] || '').replace(/\s+/g, '').toUpperCase();
+  const rows = [];
+  lines.forEach(l => {
+    const t = l.split(/\s+/);
+    if (!/^\d+$/.test(t[0]) || t.length < 8) return;
+    let i = 1; const nama = [];
+    while (i < t.length && !/^\d/.test(t[i])) nama.push(t[i++]);
+    const nums = t.slice(i);
+    if (!nama.length || nums.length < 4 || !nums.every(n => /^\d+(,\d+)?$/.test(n))) return;
+    const v = nums.map(n => parseFloat(n.replace(',', '.')));
+    const rank = v.pop(), rerata = v.pop(), jumlah = v.pop();
+    rows.push({ no: +t[0], nama: nama.join(' '), nilai: v, jumlah, rerata, rank });
+  });
+  const n = rows.length ? rows[0].nilai.length : 0;
+  const mapel = n === DEFAULT_MAPEL.length ? DEFAULT_MAPEL : Array.from({ length: n }, (_, i) => DEFAULT_MAPEL[i] || 'Mapel ' + (i + 1));
+  rows.forEach(r => { const o = {}; mapel.forEach((m, i) => o[m] = r.nilai[i]); r.nilai = o; });
+  return { tahun, semester, kelas, mapel, rows };
+}
+
+/* ---------- Pratinjau (bisa diedit) ---------- */
+function renderPreview() {
+  const m = parsed.mapel;
+  $('pTable').innerHTML = `<tr><th>No</th><th class="l">Nama</th>${m.map(x => `<th>${esc(x)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr>` +
+    parsed.rows.map((r, i) => `<tr><td>${r.no}</td><td class="l"><input class="nm" data-i="${i}" data-f="nama" value="${esc(r.nama)}"></td>` +
+      m.map(x => `<td><input data-i="${i}" data-m="${esc(x)}" value="${r.nilai[x]}"></td>`).join('') +
+      `<td>${r.jumlah}</td><td>${r.rerata.toFixed(2)}</td><td>${r.rank}</td></tr>`).join('');
+}
+$('pTable').oninput = e => {
+  const el = e.target, r = parsed.rows[el.dataset.i]; if (!r) return;
+  if (el.dataset.f === 'nama') r.nama = el.value; else r.nilai[el.dataset.m] = parseFloat(el.value.replace(',', '.')) || 0;
+};
+$('btnSave').onclick = async () => {
+  const tahun = $('pTahun').value.trim(), semester = $('pSem').value.trim(), kelas = $('pKelas').value.trim();
+  if (!tahun || !semester || !kelas) { say('Tahun ajaran, semester, dan kelas wajib diisi.', 'err'); return; }
+  $('btnSave').disabled = true; say('Menyimpan…');
+  const j = await api('save', { tahun, semester, kelas, rows: parsed.rows });
+  $('btnSave').disabled = false;
+  if (j.ok) { say(`Tersimpan: ${j.saved} siswa.`, 'ok'); $('preview').classList.add('hide'); $('file').value = ''; await loadMenu(); }
+  else say(j.error, 'err');
+};
+
+/* ---------- Lihat data tersimpan ---------- */
+async function openSet(t, s, k) {
+  current = { t, s, k }; show('set'); say('Memuat…');
+  const j = await api('get', { tahun: t, semester: s, kelas: k });
+  if (!j.ok) { say(j.error, 'err'); return; }
+  say('');
+  const m = j.rows.length ? Object.keys(j.rows[0].nilai) : [];
+  $('sTitle').textContent = `Nilai Rapor ${t} · Semester ${s} · Kelas ${k}`;
+  $('sTable').innerHTML = `<tr><th>No</th><th class="l">Nama</th>${m.map(x => `<th>${esc(x)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr>` +
+    j.rows.map(r => `<tr><td>${esc(r.no)}</td><td class="l">${esc(r.nama)}</td>${m.map(x => `<td>${esc(r.nilai[x])}</td>`).join('')}<td>${esc(r.jumlah)}</td><td>${Number(r.rerata).toFixed(2)}</td><td>${esc(r.rank)}</td></tr>`).join('');
+}
+$('btnDel').onclick = async () => {
+  if (!current || !confirm('Hapus data ini dari bank nilai?')) return;
+  const j = await api('delete', { tahun: current.t, semester: current.s, kelas: current.k });
+  if (j.ok) { await loadMenu(); show('upload'); say('Data dihapus.', 'ok'); } else say(j.error, 'err');
+};
+
+if (token) start();
+</script>
+</body>
+</html>
