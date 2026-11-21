@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Cache-Control" content="no-cache">
 <meta name="theme-color" content="#14624a">
 <title>Bank Nilai Rapor</title>
 <style>
@@ -69,6 +70,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-b
 .pwbox .field{padding-right:44px}
 .pwbox button{position:absolute;right:4px;top:4px;width:34px;height:34px;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--mut)}
 #lmsg{min-height:20px;margin:8px 0 12px;font-size:13px;color:var(--low)}
+.ver{font-size:11px;color:var(--mut);margin-top:14px;text-align:center}
 .shake{animation:shake .4s}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 @media(max-width:860px){#login{grid-template-columns:1fr}.hero{display:none}}
@@ -253,6 +255,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
       </div>
       <p id="lmsg" role="alert"></p>
       <button class="btn block" id="btnLogin" type="submit">Masuk</button>
+      <p class="ver"></p>
     </form>
   </div>
 </section>
@@ -265,6 +268,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
     <button class="btn block" id="btnNew"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Unggah rekap PDF</button>
     <div id="menu"></div>
     <div class="sidefoot">
+      <p class="ver" style="text-align:center;margin:0"></p>
       <button class="btn ghost block" id="btnTheme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="themeTxt">Mode gelap</span></button>
       <button class="btn ghost block" id="btnFix"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Rapikan nama mapel</button>
       <button class="btn danger block" id="btnOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
@@ -297,6 +301,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
         </div>
         <div id="overwrite" class="note hide"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Data untuk tahun, semester, dan kelas ini sudah ada. Menyimpan akan menggantinya.</span></div>
         <div class="note info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Periksa hasil baca di bawah. Klik sel nilai atau judul kolom untuk memperbaiki; jumlah dan rerata baris ikut dihitung ulang.</span></div>
+        <div id="mapelInfo" class="chips" style="margin:0 0 12px;align-items:center"></div>
         <div class="wrap"><table id="pTable"></table></div>
         <div class="savebar">
           <button class="btn ghost" id="btnCancel">Batal</button>
@@ -334,6 +339,8 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
 const KKM = 75;   // batas nilai "perlu perhatian" untuk pewarnaan; ubah sesuai kebutuhan
 const $ = id => document.getElementById(id);
+const VERSI = '21 Nov 2026 · r6';
+document.querySelectorAll('.ver').forEach(e => e.textContent = 'Versi ' + VERSI);
 let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
 let curRows = [], curMapel = [], sortKey = 'no', sortDir = 1, query = '';
 
@@ -402,18 +409,23 @@ $('btnEye').onclick = () => { const p = $('pw'); p.type = p.type === 'password' 
 $('btnOut').onclick = logout;
 $('btnFix').onclick = async () => {
   if (!sets.length) { toast('Belum ada data tersimpan.', 'err'); return; }
-  if (!await confirmBox('Rapikan nama mapel?', `Nama mata pelajaran pada ${sets.length} data kelas akan diseragamkan (mis. Mekarsih menjadi MeKarSi, B.ING menjadi B. Inggris). Nilai siswa tidak berubah.`, 'Ya, rapikan', false)) return;
+  if (!await confirmBox('Rapikan nama mapel?', `Nama mata pelajaran dan nama kelas pada ${sets.length} data akan diseragamkan (mis. Mekarsih menjadi MeKarSi, B.ING menjadi B. Inggris, 4 A menjadi IVA). Nilai siswa tidak berubah.`, 'Ya, rapikan', false)) return;
   const b = $('btnFix'), old = b.innerHTML; b.disabled = true;
   let fixed = 0, fail = 0;
   for (let i = 0; i < sets.length; i++) {
     const x = sets[i]; b.innerHTML = `<span class="spin"></span>${i + 1} / ${sets.length}`;
     const j = await api('get', { tahun: x.tahun, semester: x.semester, kelas: x.kelas });
     if (!j.ok) { fail++; continue; }
-    const rows = remapRows(j.rows); if (!rows) continue;
-    const sv = await api('save', { tahun: x.tahun, semester: x.semester, kelas: x.kelas, rows });
+    const kb = kelasBaku(x.kelas);
+    const rows = remapRows(j.rows);
+    if (!rows && kb === x.kelas) continue;
+    if (kb !== x.kelas && sets.some(z => z.tahun === x.tahun && z.semester === x.semester && z.kelas === kb)) { fail++; continue; }   // sudah ada data kelas itu
+    const sv = await api('save', { tahun: x.tahun, semester: x.semester, kelas: kb, rows: rows || j.rows });
+    if (sv.ok && kb !== x.kelas) await api('delete', { tahun: x.tahun, semester: x.semester, kelas: x.kelas });
     if (sv.ok) fixed++; else fail++;
   }
   b.disabled = false; b.innerHTML = old;
+  if (current && kelasBaku(current.k) !== current.k) { current = null; show('upload'); }
   await loadMenu();
   if (current) openSet(current.t, current.s, current.k);
   toast(fail ? `${fixed} data dirapikan, ${fail} gagal. Coba lagi.` : fixed ? `${fixed} data kelas dirapikan.` : 'Semua nama mapel sudah rapi.', fail ? 'err' : 'ok');
@@ -501,7 +513,8 @@ async function handleFile(f) {
     $('dropTitle').textContent = '✓ ' + f.name;
     renderPreview(); checkOverwrite(); $('preview').classList.remove('hide'); setStep(2);
     $('preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    toast(parsed.fromPdf ? `${parsed.rows.length} siswa dan ${parsed.mapel.length} mata pelajaran terbaca. Periksa lalu simpan.` : `${parsed.rows.length} siswa terbaca, tetapi nama mata pelajaran tidak terbaca dari PDF. Isi nama di judul kolom.`, parsed.fromPdf ? 'ok' : 'err');
+    showMapelInfo();
+    toast(parsed.cara === 'urutan' ? `${parsed.rows.length} siswa terbaca, tetapi nama mata pelajaran tidak terbaca dari PDF. Isi nama di judul kolom.` : `${parsed.rows.length} siswa dan ${parsed.mapel.length} mata pelajaran terbaca.${parsed.cara === 'teks' ? ' Nama kolom ditebak, mohon periksa.' : ' Periksa lalu simpan.'}`, parsed.cara === 'urutan' ? 'err' : 'ok');
   } catch (err) { resetUpload(); toast('Gagal membaca PDF: ' + err.message, 'err'); }
 }
 
@@ -509,14 +522,14 @@ async function handleFile(f) {
 /* Nama baku mata pelajaran dan variannya (huruf besar/kecil, titik, spasi diabaikan). Nama di luar daftar dibiarkan apa adanya. */
 const VARIAN = {
   'Agama': ['agama', 'agm', 'pendidikanagama', 'pendidikanagamaislam', 'agamaislam', 'pai'],
-  'PKn': ['pkn', 'ppkn', 'pkwn', 'pancasila', 'pendidikanpancasila', 'pendidikankewarganegaraan'],
+  'PKn': ['pkn', 'pp', 'ppkn', 'pkwn', 'pancasila', 'pendidikanpancasila', 'pendidikankewarganegaraan'],
   'BI': ['bi', 'bind', 'bindo', 'bindonesia', 'bhsind', 'bhsindo', 'bhsindonesia', 'bahasaindo', 'bahasaindonesia'],
   'MTK': ['mtk', 'mat', 'matematika', 'math'],
   'IPAS': ['ipas', 'ilmupengetahuanalamdansosial', 'ilmupengetahuanalamsosial'],
   'SBdP': ['sbdp', 'sbd', 'sbp', 'senibudaya', 'senibudayaprakarya', 'senibudayadanprakarya'],
   'PJOK': ['pjok', 'penjas', 'penjaskes', 'pjkes', 'pjk', 'pendidikanjasmani', 'pendidikanjasmanidanolahraga', 'pendidikanjasmaniolahragadankesehatan'],
   'B. Inggris': ['binggris', 'bing', 'bhsing', 'bhsinggris', 'bahasainggris', 'inggris', 'english'],
-  'MeKarSi': ['mekarsi', 'mekarsih']
+  'MeKarSi': ['mekarsi', 'mekarsih', 'mulok', 'muatanlokal', 'muatanlokalmekarsi']
 };
 const VMAP = {};
 Object.keys(VARIAN).forEach(n => VARIAN[n].forEach(v => VMAP[v] = n));
@@ -535,6 +548,17 @@ function canonName(name) {
   if (k.length >= 5) { const hit = Object.keys(VMAP).find(v => v.length >= 5 && dekat1(k, v)); if (hit) return VMAP[hit]; }
   return t;
 }
+const ROMAWI = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+function kelasBaku(k) {
+  let t = String(k ?? '').toUpperCase().replace(/\([^)]*\)/g, '').replace(/\s+/g, '').replace(/^KELAS/, '');
+  const m = t.match(/^(\d{1,2})(.*)$/);
+  if (m && ROMAWI[+m[1]]) t = ROMAWI[+m[1]] + m[2];
+  return t;
+}
+function parseKelas(all) {
+  const m = all.match(/RAPOR\s+KELAS\s+([^\n]+)/i) || all.match(/RAPOR\s+([^\n]+)/i);
+  return kelasBaku(m ? m[1] : '');
+}
 /* Seragamkan nama mapel pada data yang sudah tersimpan; null jika tidak ada yang berubah. */
 function remapRows(rows) {
   const keys = rows.length ? Object.keys(rows[0].nilai || {}) : [];
@@ -549,14 +573,15 @@ function remapRows(rows) {
 const LABEL_TETAP = /^(no|nama|siswa|nama siswa|nis|nisn|jumlah|rerata|rank|ranking|peringkat)$/i;
 function findHeader(rows) {
   const cx = i => i.x + (i.w || 0) / 2;
-  const anchor = rows.find(r => r.items.some(i => /^nama/i.test(i.s)) && r.items.some(i => /^jumlah$/i.test(i.s)));
+  const anchor = rows.find(r => r.items.some(i => /^nama/i.test(i.s)) && r.items.some(i => /^(jumlah|rerata)$/i.test(i.s)));
   if (!anchor) return null;
   const ai = anchor.items;
   const jum = ai.find(i => /^jumlah$/i.test(i.s));
   const rer = ai.find(i => /^rerata$/i.test(i.s));
   const rnk = ai.find(i => /^(rank|ranking|peringkat)$/i.test(i.s));
   const fixedEnd = ai.filter(i => /^(no|nama|siswa|nama siswa|nis|nisn)$/i.test(i.s)).map(i => i.x + (i.w || 0));
-  const left = fixedEnd.length ? Math.max(...fixedEnd) : 0, right = jum.x - 1;
+  const rights = ai.filter(i => /^(jumlah|rerata|rank|ranking|peringkat)$/i.test(i.s)).map(i => i.x);
+  const left = fixedEnd.length ? Math.max(...fixedEnd) : 0, right = Math.min(...rights) - 1;
   const frag = [];
   rows.forEach(h => {
     if (Math.abs(h.y - anchor.y) > 16) return;
@@ -572,7 +597,7 @@ function findHeader(rows) {
   });
   const cols = groups.map(g => ({ cx: g.cx, name: g.items.sort((a, b) => b.y - a.y || a.x - b.x).map(i => i.s).join(' ') }));
   const pitch = cols.length > 1 ? Math.min(...cols.slice(1).map((c, i) => c.cx - cols[i].cx)) : 40;
-  return { cols, pitch, tot: { jumlah: cx(jum), rerata: rer ? cx(rer) : null, rank: rnk ? cx(rnk) : null } };
+  return { cols, pitch, tot: { jumlah: jum ? cx(jum) : null, rerata: rer ? cx(rer) : null, rank: rnk ? cx(rnk) : null } };
 }
 
 /* Baca baris siswa berdasarkan POSISI kolom (bukan urutan), sehingga sel kosong tidak menggeser kolom lain. */
@@ -606,10 +631,12 @@ function parseByHeader(allRows, h) {
     const last = nums.map(n => parseFloat(n.s.replace(',', '.')));
     if (got.rank == null) got.rank = last[last.length - 1];
     if (got.rerata == null) got.rerata = last[last.length - 2];
-    if (got.jumlah == null) got.jumlah = last[last.length - 3];
     const nilai = {};
     named.forEach(c => { nilai[c.name] = got['c' + c.idx] ?? null; });
-    if (Object.values(nilai).filter(v => v !== null).length < 3) return;
+    const ada = Object.values(nilai).filter(v => v !== null);
+    if (ada.length < 3) return;
+    if (h.tot.jumlah == null) got.jumlah = Math.round(ada.reduce((a, b) => a + b, 0) * 100) / 100;   // PDF tanpa kolom Jumlah: dihitung
+    else if (got.jumlah == null) got.jumlah = last[last.length - 3];
     rows.push({ no: +it[0].s, nama: nama.join(' '), nilai, jumlah: got.jumlah, rerata: got.rerata, rank: got.rank });
   });
   return { rows, mapel: named.map(c => c.name) };
@@ -619,12 +646,13 @@ function parseLines(lines, header, allRows) {
   const all = lines.join('\n');
   const tahun = (all.match(/(\d{4})\s*\/\s*(\d{4})/) || []).slice(1, 3).join('/');
   const semester = (all.match(/SEMESTER\s*(\d)/i) || [])[1] || '';
-  const kelas = ((all.match(/RAPOR\s+([^\n]+)/i) || [])[1] || '').replace(/\s+/g, '').toUpperCase();
+  const kelas = parseKelas(all);
   if (header && allRows) {
     const r = parseByHeader(allRows, header);
-    if (r.rows.length && r.mapel.length) return { tahun, semester, kelas, mapel: r.mapel, rows: r.rows, fromPdf: true };
+    if (r.rows.length && r.mapel.length) return { tahun, semester, kelas, mapel: r.mapel, rows: r.rows, fromPdf: true, cara: 'posisi' };
   }
-  /* cadangan bila header tidak terbaca: baca berdasarkan urutan angka, kolom diberi nama sementara */
+  /* cadangan bila header tidak terbaca berdasarkan posisi: baca per baris teks */
+  const adaJumlah = /(^|\s)Jumlah(\s|$)/im.test(all);
   const rows = [];
   lines.forEach(l => {
     const t = l.split(/\s+/);
@@ -634,16 +662,37 @@ function parseLines(lines, header, allRows) {
     const nums = t.slice(i);
     if (!nama.length || nums.length < 4 || !nums.every(n => /^\d+(,\d+)?$/.test(n))) return;
     const v = nums.map(n => parseFloat(n.replace(',', '.')));
-    const rank = v.pop(), rerata = v.pop(), jumlah = v.pop();
+    const rank = v.pop(), rerata = v.pop();
+    const jumlah = adaJumlah ? v.pop() : Math.round(v.reduce((a, b) => a + b, 0) * 100) / 100;
     rows.push({ no: +t[0], nama: nama.join(' '), nilai: v, jumlah, rerata, rank });
   });
   const n = rows.length ? rows[0].nilai.length : 0;
-  const mapel = Array.from({ length: n }, (_, i) => 'Mapel ' + (i + 1));
+  let nm = null;                                                       // nama kolom dari baris header (teks)
+  const hi = lines.findIndex(l => /\bNama\b/i.test(l) && /\bRerata\b/i.test(l));
+  if (hi >= 0) {
+    const t = lines[hi].split(/\s+/), a = t.findIndex(x => /^siswa$/i.test(x)), b = t.findIndex(x => /^(jumlah|rerata)$/i.test(x));
+    if (a >= 0 && b > a) {
+      let names = t.slice(a + 1, b);
+      if (names.length === n - 1) {                                    // satu nama terpecah di baris atas/bawah (mis. MEKAR + SI)
+        const extra = [lines[hi - 1], lines[hi + 1]].filter(x => x && !/\d/.test(x) && x.split(/\s+/).length <= 3).join(' ');
+        if (extra) names = [...names, extra];
+      }
+      if (names.length === n) nm = names;
+    }
+  }
+  const seen = {};
+  const mapel = (nm || Array.from({ length: n }, (_, i) => 'Mapel ' + (i + 1))).map(x => {
+    const m = nm ? (canonName(x) || x) : x; seen[m] = (seen[m] || 0) + 1; return seen[m] > 1 ? `${m} (${seen[m]})` : m;
+  });
   rows.forEach(r => { const o = {}; mapel.forEach((m, i) => o[m] = r.nilai[i]); r.nilai = o; });
-  return { tahun, semester, kelas, mapel, rows, fromPdf: false };
+  return { tahun, semester, kelas, mapel, rows, fromPdf: !!nm, cara: nm ? 'teks' : 'urutan' };
 }
 /* ==== MAPEL:END ==== */
 
+function showMapelInfo() {
+  const cara = { posisi: 'dibaca dari header PDF', teks: 'ditebak dari teks header, periksa namanya', urutan: 'nama tidak terbaca, isi manual' }[parsed.cara];
+  $('mapelInfo').innerHTML = `<span style="font-size:12.5px;color:var(--mut);margin-right:4px">Mapel terbaca (${parsed.mapel.length}) · ${cara}:</span>` + parsed.mapel.map(m => `<span class="chip">${esc(m)}</span>`).join('');
+}
 function checkOverwrite() {
   const t = $('pTahun').value.trim(), s = $('pSem').value.trim(), k = $('pKelas').value.trim();
   $('overwrite').classList.toggle('hide', !sets.some(x => x.tahun === t && x.semester === s && x.kelas === k));
@@ -677,7 +726,7 @@ $('pTable').onchange = e => {
   if (parsed.mapel.includes(nw)) { toast('Nama mata pelajaran sudah dipakai.', 'err'); el.value = old; return; }
   parsed.mapel[i] = nw;
   parsed.rows.forEach(r => { const o = {}; parsed.mapel.forEach((m, j) => o[m] = j === i ? r.nilai[old] : r.nilai[m]); r.nilai = o; });
-  renderPreview();
+  renderPreview(); showMapelInfo();
 };
 $('btnSave').onclick = async () => {
   const tahun = $('pTahun').value.trim(), semester = $('pSem').value.trim(), kelas = $('pKelas').value.trim();
