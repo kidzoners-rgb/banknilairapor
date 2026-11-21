@@ -169,7 +169,9 @@ th.nama{left:0;z-index:3}
 tbody tr{transition:background .12s}
 tbody tr:hover td{background:var(--surface2)}
 tbody tr:hover td.nama{background:var(--surface2)}
-tfoot td{position:sticky;bottom:0;background:var(--surface2);font-weight:700;border-top:2px solid var(--line);border-bottom:0}
+tfoot td{background:var(--surface2);font-weight:700;border-bottom:1px solid var(--line)}
+tfoot tr:first-child td{border-top:2px solid var(--line)}
+tfoot td.l{position:sticky;left:0;z-index:1;background:var(--surface2)}
 .hd{width:84px;padding:4px 6px;text-align:center;font-weight:700;font-size:12px;border:1px dashed var(--line);border-radius:6px;background:transparent;color:var(--pri)}
 .hd:focus{outline:0;border-style:solid;border-color:var(--pri);background:var(--surface)}
 .score{display:inline-block;min-width:38px;padding:2px 8px;border-radius:8px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -204,9 +206,21 @@ dialog h3{font-size:18px;margin-bottom:6px}
 dialog p{color:var(--mut)}
 dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 
+@page{size:A4 landscape;margin:10mm}
+#printArea{display:none}
 @media print{
-  aside,.topbar,.toolbar,.actions,#toasts,.scrim{display:none!important}
-  #app{display:block}.wrap{max-height:none;border:0}body{background:#fff;color:#000}
+  html,body{background:#fff!important;color:#000!important}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block;font-family:Arial,Helvetica,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #printArea h1{font-size:14pt;margin:0;text-align:center;letter-spacing:.02em}
+  #printArea .ps{font-size:10pt;text-align:center;margin:2px 0 8px}
+  #printArea table{width:100%;border-collapse:collapse;font-size:var(--pfs,10pt)}
+  #printArea th,#printArea td{position:static;border:.6pt solid #333;padding:.5mm 1.5mm;text-align:center;white-space:nowrap;line-height:1.25;background:none;color:#000}
+  #printArea th{background:#cfe5da!important;color:#0f3d2e;font-weight:700}
+  #printArea td.l{text-align:left}
+  #printArea tfoot td{background:#eef5f1!important;font-weight:700}
+  #printArea tr{page-break-inside:avoid}
+  #printArea thead{display:table-header-group}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -306,6 +320,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 </div>
 
 <div id="toasts" aria-live="polite"></div>
+<div id="printArea" aria-hidden="true"></div>
 
 <dialog id="dlg">
   <h3 id="dlgT"></h3><p id="dlgP"></p>
@@ -609,6 +624,17 @@ function renderSet() {
   renderTable();
 }
 
+/* Statistik seluruh kelas (tidak terpengaruh pencarian): rerata, tertinggi, terendah per kolom nilai */
+function statRows() {
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const defs = [['Rerata', a => sum(a) / a.length], ['Tertinggi', a => Math.max(...a)], ['Terendah', a => Math.min(...a)]];
+  const series = [...curMapel.map(m => curRows.map(r => Number(r.nilai[m]))), curRows.map(r => Number(r.jumlah)), curRows.map(r => Number(r.rerata))];
+  return defs.map(([label, f]) => ({ label, v: series.map((a, i) => (label === 'Rerata' || i === series.length - 1) ? f2(f(a)) : fmt(f(a))) }));
+}
+function statTfoot() {
+  return statRows().map(s => `<tr><td class="l" colspan="2">${s.label}</td>${s.v.map(x => `<td>${x}</td>`).join('')}<td></td></tr>`).join('');
+}
+
 function renderTable() {
   const cols = [{ k: 'no', t: 'No', l: 1 }, { k: 'nama', t: 'Nama', l: 1, n: 1 }, ...curMapel.map(m => ({ k: 'm:' + m, t: m })), { k: 'jumlah', t: 'Jumlah' }, { k: 'rerata', t: 'Rerata' }, { k: 'rank', t: 'Rank' }];
   const get = (r, k) => k.startsWith('m:') ? Number(r.nilai[k.slice(2)]) : r[k];
@@ -619,9 +645,7 @@ function renderTable() {
     `<tr><td class="l">${esc(r.no)}</td><td class="l nama">${esc(r.nama)}</td>` +
     curMapel.map(m => `<td><span class="score ${cls(Number(r.nilai[m]))}">${esc(fmt(r.nilai[m]))}</span></td>`).join('') +
     `<td>${esc(fmt(r.jumlah))}</td><td><b>${f2(r.rerata)}</b></td><td><span class="rank ${Number(r.rank) <= 3 ? 'r' + r.rank : ''}">${esc(r.rank)}</span></td></tr>`).join('');
-  const foot = rows.length ? '<tfoot><tr><td class="l" colspan="2">Rata-rata kelas</td>' +
-    curMapel.map(m => `<td>${f2(rows.reduce((a, r) => a + Number(r.nilai[m]), 0) / rows.length)}</td>`).join('') +
-    `<td>${f2(rows.reduce((a, r) => a + Number(r.jumlah), 0) / rows.length)}</td><td>${f2(rows.reduce((a, r) => a + Number(r.rerata), 0) / rows.length)}</td><td></td></tr></tfoot>` : '';
+  const foot = curRows.length ? '<tfoot>' + statTfoot() + '</tfoot>' : '';
   $('sTable').innerHTML = head + `<tbody>${body}</tbody>` + foot;
   if (!rows.length) $('sTable').insertAdjacentHTML('afterend', '<div class="nores">Tidak ada siswa yang cocok.</div>');
   else { const n = $('sTable').parentNode.nextElementSibling; if (n && n.classList.contains('nores')) n.remove(); }
@@ -643,7 +667,17 @@ $('btnCsv').onclick = () => {
   a.download = `nilai-${current.t.replace('/', '-')}-sem${current.s}-${current.k}.csv`; a.click(); URL.revokeObjectURL(a.href);
   toast('File CSV diunduh.', 'ok');
 };
-$('btnPrint').onclick = () => print();
+$('btnPrint').onclick = () => {
+  if (!curRows.length || !current) return;
+  const rowMm = Math.min(8, 168 / (curRows.length + 5));            // tinggi baris menyesuaikan jumlah siswa agar muat satu halaman
+  const pfs = Math.max(7, Math.min(11, (rowMm * 2.835 - 2.9) / 1.25));
+  const head = `<tr><th>No</th><th>Nama Siswa</th>${curMapel.map(m => `<th>${esc(m)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr>`;
+  const body = curRows.map(r => `<tr><td>${esc(r.no)}</td><td class="l">${esc(r.nama)}</td>${curMapel.map(m => `<td>${esc(fmt(r.nilai[m]))}</td>`).join('')}<td>${esc(fmt(r.jumlah))}</td><td>${f2(r.rerata)}</td><td>${esc(r.rank)}</td></tr>`).join('');
+  $('printArea').innerHTML = `<h1>REKAPITULASI NILAI RAPOR KELAS ${esc(current.k)}</h1><div class="ps">SEMESTER ${esc(current.s)} - TAHUN AJARAN ${esc(current.t)}</div>` +
+    `<table style="--pfs:${pfs.toFixed(1)}pt"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${statTfoot()}</tfoot></table>`;
+  print();
+};
+window.onafterprint = () => { $('printArea').innerHTML = ''; };
 $('btnDel').onclick = async () => {
   if (!current) return;
   if (!await confirmBox('Hapus data ini?', `Nilai Kelas ${current.k}, semester ${current.s}, ${current.t} akan dihapus dari bank nilai dan tidak bisa dikembalikan.`)) return;
