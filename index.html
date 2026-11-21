@@ -170,6 +170,8 @@ tbody tr{transition:background .12s}
 tbody tr:hover td{background:var(--surface2)}
 tbody tr:hover td.nama{background:var(--surface2)}
 tfoot td{position:sticky;bottom:0;background:var(--surface2);font-weight:700;border-top:2px solid var(--line);border-bottom:0}
+.hd{width:84px;padding:4px 6px;text-align:center;font-weight:700;font-size:12px;border:1px dashed var(--line);border-radius:6px;background:transparent;color:var(--pri)}
+.hd:focus{outline:0;border-style:solid;border-color:var(--pri);background:var(--surface)}
 .score{display:inline-block;min-width:38px;padding:2px 8px;border-radius:8px;font-weight:600;font-variant-numeric:tabular-nums}
 .s-good{background:var(--good-bg);color:var(--good)}
 .s-mid{background:var(--mid-bg);color:var(--mid)}
@@ -279,7 +281,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
           <div><label class="lbl" for="pKelas">Kelas</label><input class="field" id="pKelas" placeholder="4A"></div>
         </div>
         <div id="overwrite" class="note hide"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Data untuk tahun, semester, dan kelas ini sudah ada. Menyimpan akan menggantinya.</span></div>
-        <div class="note info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Periksa hasil baca di bawah. Klik sel nilai untuk memperbaiki; jumlah dan rerata baris ikut dihitung ulang.</span></div>
+        <div class="note info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Periksa hasil baca di bawah. Klik sel nilai atau judul kolom untuk memperbaiki; jumlah dan rerata baris ikut dihitung ulang.</span></div>
         <div class="wrap"><table id="pTable"></table></div>
         <div class="savebar">
           <button class="btn ghost" id="btnCancel">Batal</button>
@@ -314,7 +316,6 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 <script>
 /* Hanya URL web app yang ada di sini. Password & ID spreadsheet tersimpan di server (Script Properties). */
 const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
-const DEFAULT_MAPEL = ['Agama','PKn','BI','MTK','SBdP','PJOK','Inggris','MeKarSi'];
 const KKM = 75;   // batas nilai "perlu perhatian" untuk pewarnaan; ubah sesuai kebutuhan
 const $ = id => document.getElementById(id);
 let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
@@ -443,7 +444,7 @@ async function handleFile(f) {
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
-    let lines = [];
+    let lines = [], header = null;
     for (let p = 1; p <= pdf.numPages; p++) {
       const tc = await (await pdf.getPage(p)).getTextContent();
       const rows = [];
@@ -451,21 +452,53 @@ async function handleFile(f) {
         const y = i.transform[5], x = i.transform[4];
         let r = rows.find(r => Math.abs(r.y - y) < 3);
         if (!r) rows.push(r = { y, items: [] });
-        r.items.push({ x, s: i.str.trim() });
+        r.items.push({ x, w: i.width || 0, s: i.str.trim() });
       });
       rows.sort((a, b) => b.y - a.y).forEach(r => lines.push(r.items.sort((a, b) => a.x - b.x).map(i => i.s).join(' ')));
+      if (!header) header = findHeader(rows);
     }
-    parsed = parseLines(lines);
+    parsed = parseLines(lines, header);
     if (!parsed.rows.length) { resetUpload(); toast('Tidak ada baris nilai yang terbaca. Pastikan PDF berformat teks (bukan hasil scan).', 'err'); return; }
     $('pTahun').value = parsed.tahun; $('pSem').value = parsed.semester; $('pKelas').value = parsed.kelas;
     $('dropTitle').textContent = '✓ ' + f.name;
     renderPreview(); checkOverwrite(); $('preview').classList.remove('hide'); setStep(2);
     $('preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    toast(`${parsed.rows.length} siswa terbaca. Periksa lalu simpan.`, 'ok');
+    toast(parsed.fromPdf ? `${parsed.rows.length} siswa dan ${parsed.mapel.length} mata pelajaran terbaca. Periksa lalu simpan.` : `${parsed.rows.length} siswa terbaca, tetapi nama mata pelajaran tidak terbaca dari PDF. Isi nama di judul kolom.`, parsed.fromPdf ? 'ok' : 'err');
   } catch (err) { resetUpload(); toast('Gagal membaca PDF: ' + err.message, 'err'); }
 }
 
-function parseLines(lines) {
+/* Nama mata pelajaran dibaca dari header tabel PDF: setiap kolom nilai di baris data pertama
+   dicocokkan (berdasarkan posisi x) dengan potongan teks header di atasnya, termasuk yang terpecah beberapa baris. */
+function findHeader(rows) {
+  const isNum = s => /^\d+(,\d+)?$/.test(s);
+  const cx = i => i.x + (i.w || 0) / 2;
+  for (const r of rows) {
+    const it = r.items;
+    if (it.length < 6 || !/^\d+$/.test(it[0].s)) continue;
+    let k = 1; while (k < it.length && !/^\d/.test(it[k].s)) k++;
+    const nums = it.slice(k);
+    if (k < 2 || nums.length < 5 || !nums.every(n => isNum(n.s))) continue;
+    const cols = nums.slice(0, -3).map(cx);           // buang Jumlah, Rerata, Rank
+    if (!cols.length) continue;
+    const pitch = cols.length > 1 ? Math.min(...cols.slice(1).map((c, i) => c - cols[i])) : 40;
+    const anchor = rows.find(h => h.y > r.y + 3 && h.items.some(i => /^nama$/i.test(i.s)));
+    const top = anchor ? anchor.y + 16 : r.y + 30, bottom = r.y + 3;
+    const frag = cols.map(() => []);
+    rows.forEach(h => {
+      if (h.y <= bottom || h.y > top) return;
+      h.items.forEach(i => {
+        let b = -1, d = Infinity;
+        cols.forEach((c, j) => { const dd = Math.abs(cx(i) - c); if (dd < d) { d = dd; b = j; } });
+        if (d <= pitch / 2) frag[b].push({ y: h.y, s: i.s });
+      });
+    });
+    if (frag.some(f => !f.length)) return null;
+    return frag.map(f => f.sort((a, b) => b.y - a.y).map(x => x.s).join(''));
+  }
+  return null;
+}
+
+function parseLines(lines, header) {
   const all = lines.join('\n');
   const tahun = (all.match(/(\d{4})\s*\/\s*(\d{4})/) || []).slice(1, 3).join('/');
   const semester = (all.match(/SEMESTER\s*(\d)/i) || [])[1] || '';
@@ -483,9 +516,12 @@ function parseLines(lines) {
     rows.push({ no: +t[0], nama: nama.join(' '), nilai: v, jumlah, rerata, rank });
   });
   const n = rows.length ? rows[0].nilai.length : 0;
-  const mapel = n === DEFAULT_MAPEL.length ? DEFAULT_MAPEL : Array.from({ length: n }, (_, i) => DEFAULT_MAPEL[i] || 'Mapel ' + (i + 1));
+  const fromPdf = !!header && header.length === n;
+  const seen = {};
+  const mapel = (fromPdf ? header : Array.from({ length: n }, (_, i) => 'Mapel ' + (i + 1)))
+    .map(m => { seen[m] = (seen[m] || 0) + 1; return seen[m] > 1 ? `${m} (${seen[m]})` : m; });
   rows.forEach(r => { const o = {}; mapel.forEach((m, i) => o[m] = r.nilai[i]); r.nilai = o; });
-  return { tahun, semester, kelas, mapel, rows };
+  return { tahun, semester, kelas, mapel, rows, fromPdf };
 }
 
 function checkOverwrite() {
@@ -498,7 +534,7 @@ function checkOverwrite() {
 const cls = v => v >= 90 ? 's-good' : v >= KKM ? 's-mid' : 's-low';
 function renderPreview() {
   const m = parsed.mapel;
-  $('pTable').innerHTML = `<thead><tr><th class="l">No</th><th class="l nama">Nama</th>${m.map(x => `<th>${esc(x)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr></thead><tbody>` +
+  $('pTable').innerHTML = `<thead><tr><th class="l">No</th><th class="l nama">Nama</th>${m.map((x, i) => `<th><input class="hd" data-mi="${i}" value="${esc(x)}" aria-label="Nama mata pelajaran" title="Klik untuk mengubah nama mata pelajaran"></th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr></thead><tbody>` +
     parsed.rows.map((r, i) => `<tr><td class="l">${r.no}</td><td class="l nama"><input class="nm" data-i="${i}" data-f="nama" value="${esc(r.nama)}" aria-label="Nama siswa"></td>` +
       m.map(x => `<td><input inputmode="decimal" data-i="${i}" data-m="${esc(x)}" value="${esc(r.nilai[x])}" aria-label="${esc(x)}"></td>`).join('') +
       `<td id="pj${i}">${fmt(r.jumlah)}</td><td id="pr${i}">${f2(r.rerata)}</td><td>${r.rank}</td></tr>`).join('') + '</tbody>';
@@ -513,6 +549,15 @@ $('pTable').oninput = e => {
   r.jumlah = Math.round(vals.reduce((a, b) => a + b, 0) * 100) / 100;
   r.rerata = vals.length ? r.jumlah / vals.length : 0;
   $('pj' + el.dataset.i).textContent = fmt(r.jumlah); $('pr' + el.dataset.i).textContent = f2(r.rerata);
+};
+$('pTable').onchange = e => {
+  const el = e.target; if (el.dataset.mi === undefined) return;
+  const i = +el.dataset.mi, old = parsed.mapel[i], nw = el.value.trim();
+  if (!nw || nw === old) { el.value = old; return; }
+  if (parsed.mapel.includes(nw)) { toast('Nama mata pelajaran sudah dipakai.', 'err'); el.value = old; return; }
+  parsed.mapel[i] = nw;
+  parsed.rows.forEach(r => { const o = {}; parsed.mapel.forEach((m, j) => o[m] = j === i ? r.nilai[old] : r.nilai[m]); r.nilai = o; });
+  renderPreview();
 };
 $('btnSave').onclick = async () => {
   const tahun = $('pTahun').value.trim(), semester = $('pSem').value.trim(), kelas = $('pKelas').value.trim();
