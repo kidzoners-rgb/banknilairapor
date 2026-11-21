@@ -266,6 +266,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
     <div id="menu"></div>
     <div class="sidefoot">
       <button class="btn ghost block" id="btnTheme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="themeTxt">Mode gelap</span></button>
+      <button class="btn ghost block" id="btnFix"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Rapikan nama mapel</button>
       <button class="btn danger block" id="btnOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
     </div>
   </aside>
@@ -339,6 +340,8 @@ let curRows = [], curMapel = [], sortKey = 'no', sortDir = 1, query = '';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt = n => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
 const f2 = n => Number(n).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const vnum = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);   // nilai kosong = null
+const vtxt = v => vnum(v) === null ? '–' : fmt(v);
 
 /* ---------- API ---------- */
 async function api(action, data = {}) {
@@ -357,9 +360,10 @@ function toast(t, cls) {
   $('toasts').appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, cls === 'err' ? 5000 : 3200);
 }
-function confirmBox(title, text) {
+function confirmBox(title, text, yes = 'Ya, hapus', danger = true) {
   return new Promise(res => {
     $('dlgT').textContent = title; $('dlgP').textContent = text;
+    $('dlgYes').textContent = yes; $('dlgYes').className = 'btn' + (danger ? ' solid-danger' : '');
     const d = $('dlg'); d.showModal();
     const done = v => { d.close(); $('dlgYes').onclick = $('dlgNo').onclick = null; res(v); };
     $('dlgYes').onclick = () => done(true); $('dlgNo').onclick = () => done(false);
@@ -396,6 +400,24 @@ function logout() {
 $('loginForm').onsubmit = e => { e.preventDefault(); doLogin(); };
 $('btnEye').onclick = () => { const p = $('pw'); p.type = p.type === 'password' ? 'text' : 'password'; };
 $('btnOut').onclick = logout;
+$('btnFix').onclick = async () => {
+  if (!sets.length) { toast('Belum ada data tersimpan.', 'err'); return; }
+  if (!await confirmBox('Rapikan nama mapel?', `Nama mata pelajaran pada ${sets.length} data kelas akan diseragamkan (mis. Mekarsih menjadi MeKarSi, B.ING menjadi B. Inggris). Nilai siswa tidak berubah.`, 'Ya, rapikan', false)) return;
+  const b = $('btnFix'), old = b.innerHTML; b.disabled = true;
+  let fixed = 0, fail = 0;
+  for (let i = 0; i < sets.length; i++) {
+    const x = sets[i]; b.innerHTML = `<span class="spin"></span>${i + 1} / ${sets.length}`;
+    const j = await api('get', { tahun: x.tahun, semester: x.semester, kelas: x.kelas });
+    if (!j.ok) { fail++; continue; }
+    const rows = remapRows(j.rows); if (!rows) continue;
+    const sv = await api('save', { tahun: x.tahun, semester: x.semester, kelas: x.kelas, rows });
+    if (sv.ok) fixed++; else fail++;
+  }
+  b.disabled = false; b.innerHTML = old;
+  await loadMenu();
+  if (current) openSet(current.t, current.s, current.k);
+  toast(fail ? `${fixed} data dirapikan, ${fail} gagal. Coba lagi.` : fixed ? `${fixed} data kelas dirapikan.` : 'Semua nama mapel sudah rapi.', fail ? 'err' : 'ok');
+};
 
 async function start() {
   $('login').classList.add('hide'); $('app').classList.remove('hide');
@@ -459,7 +481,7 @@ async function handleFile(f) {
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
-    let lines = [], header = null;
+    let lines = [], header = null; const allRows = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const tc = await (await pdf.getPage(p)).getTextContent();
       const rows = [];
@@ -471,8 +493,9 @@ async function handleFile(f) {
       });
       rows.sort((a, b) => b.y - a.y).forEach(r => lines.push(r.items.sort((a, b) => a.x - b.x).map(i => i.s).join(' ')));
       if (!header) header = findHeader(rows);
+      allRows.push(...rows);
     }
-    parsed = parseLines(lines, header);
+    parsed = parseLines(lines, header, allRows);
     if (!parsed.rows.length) { resetUpload(); toast('Tidak ada baris nilai yang terbaca. Pastikan PDF berformat teks (bukan hasil scan).', 'err'); return; }
     $('pTahun').value = parsed.tahun; $('pSem').value = parsed.semester; $('pKelas').value = parsed.kelas;
     $('dropTitle').textContent = '✓ ' + f.name;
@@ -482,42 +505,126 @@ async function handleFile(f) {
   } catch (err) { resetUpload(); toast('Gagal membaca PDF: ' + err.message, 'err'); }
 }
 
-/* Nama mata pelajaran dibaca dari header tabel PDF: setiap kolom nilai di baris data pertama
-   dicocokkan (berdasarkan posisi x) dengan potongan teks header di atasnya, termasuk yang terpecah beberapa baris. */
-function findHeader(rows) {
-  const isNum = s => /^\d+(,\d+)?$/.test(s);
-  const cx = i => i.x + (i.w || 0) / 2;
-  for (const r of rows) {
-    const it = r.items;
-    if (it.length < 6 || !/^\d+$/.test(it[0].s)) continue;
-    let k = 1; while (k < it.length && !/^\d/.test(it[k].s)) k++;
-    const nums = it.slice(k);
-    if (k < 2 || nums.length < 5 || !nums.every(n => isNum(n.s))) continue;
-    const cols = nums.slice(0, -3).map(cx);           // buang Jumlah, Rerata, Rank
-    if (!cols.length) continue;
-    const pitch = cols.length > 1 ? Math.min(...cols.slice(1).map((c, i) => c - cols[i])) : 40;
-    const anchor = rows.find(h => h.y > r.y + 3 && h.items.some(i => /^nama$/i.test(i.s)));
-    const top = anchor ? anchor.y + 16 : r.y + 30, bottom = r.y + 3;
-    const frag = cols.map(() => []);
-    rows.forEach(h => {
-      if (h.y <= bottom || h.y > top) return;
-      h.items.forEach(i => {
-        let b = -1, d = Infinity;
-        cols.forEach((c, j) => { const dd = Math.abs(cx(i) - c); if (dd < d) { d = dd; b = j; } });
-        if (d <= pitch / 2) frag[b].push({ y: h.y, s: i.s });
-      });
-    });
-    if (frag.some(f => !f.length)) return null;
-    return frag.map(f => f.sort((a, b) => b.y - a.y).map(x => x.s).join(''));
-  }
-  return null;
+/* ==== MAPEL:BEGIN ==== */
+/* Nama baku mata pelajaran dan variannya (huruf besar/kecil, titik, spasi diabaikan). Nama di luar daftar dibiarkan apa adanya. */
+const VARIAN = {
+  'Agama': ['agama', 'agm', 'pendidikanagama', 'pendidikanagamaislam', 'agamaislam', 'pai'],
+  'PKn': ['pkn', 'ppkn', 'pkwn', 'pancasila', 'pendidikanpancasila', 'pendidikankewarganegaraan'],
+  'BI': ['bi', 'bind', 'bindo', 'bindonesia', 'bhsind', 'bhsindo', 'bhsindonesia', 'bahasaindo', 'bahasaindonesia'],
+  'MTK': ['mtk', 'mat', 'matematika', 'math'],
+  'IPAS': ['ipas', 'ilmupengetahuanalamdansosial', 'ilmupengetahuanalamsosial'],
+  'SBdP': ['sbdp', 'sbd', 'sbp', 'senibudaya', 'senibudayaprakarya', 'senibudayadanprakarya'],
+  'PJOK': ['pjok', 'penjas', 'penjaskes', 'pjkes', 'pjk', 'pendidikanjasmani', 'pendidikanjasmanidanolahraga', 'pendidikanjasmaniolahragadankesehatan'],
+  'B. Inggris': ['binggris', 'bing', 'bhsing', 'bhsinggris', 'bahasainggris', 'inggris', 'english'],
+  'MeKarSi': ['mekarsi', 'mekarsih']
+};
+const VMAP = {};
+Object.keys(VARIAN).forEach(n => VARIAN[n].forEach(v => VMAP[v] = n));
+function dekat1(a, b) {   // true jika kedua teks hanya selisih 1 huruf (salah ketik)
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1);
+  const [x, y] = a.length < b.length ? [a, b] : [b, a];
+  return x.slice(i) === y.slice(i + 1);
+}
+function canonName(name) {
+  const t = String(name ?? '').replace(/\s+/g, ' ').trim();
+  const k = t.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!k) return '';
+  if (VMAP[k]) return VMAP[k];
+  if (k.length >= 5) { const hit = Object.keys(VMAP).find(v => v.length >= 5 && dekat1(k, v)); if (hit) return VMAP[hit]; }
+  return t;
+}
+/* Seragamkan nama mapel pada data yang sudah tersimpan; null jika tidak ada yang berubah. */
+function remapRows(rows) {
+  const keys = rows.length ? Object.keys(rows[0].nilai || {}) : [];
+  const map = {}, used = {}; let changed = false;
+  keys.forEach(k => { let n = canonName(k) || k; if (used[n]) n = k; used[n] = 1; map[k] = n; if (n !== k) changed = true; });
+  if (!changed) return null;
+  return rows.map(r => { const o = {}; Object.keys(r.nilai || {}).forEach(k => { o[map[k] || k] = r.nilai[k]; }); return { ...r, nilai: o }; });
 }
 
-function parseLines(lines, header) {
+/* Header tabel dibaca dari PDF: kolom nilai = potongan teks header yang sejajar secara vertikal (termasuk yang terpecah
+   beberapa baris). Kolom yang headernya kosong tidak dibuat sehingga otomatis dilewati. */
+const LABEL_TETAP = /^(no|nama|siswa|nama siswa|nis|nisn|jumlah|rerata|rank|ranking|peringkat)$/i;
+function findHeader(rows) {
+  const cx = i => i.x + (i.w || 0) / 2;
+  const anchor = rows.find(r => r.items.some(i => /^nama/i.test(i.s)) && r.items.some(i => /^jumlah$/i.test(i.s)));
+  if (!anchor) return null;
+  const ai = anchor.items;
+  const jum = ai.find(i => /^jumlah$/i.test(i.s));
+  const rer = ai.find(i => /^rerata$/i.test(i.s));
+  const rnk = ai.find(i => /^(rank|ranking|peringkat)$/i.test(i.s));
+  const fixedEnd = ai.filter(i => /^(no|nama|siswa|nama siswa|nis|nisn)$/i.test(i.s)).map(i => i.x + (i.w || 0));
+  const left = fixedEnd.length ? Math.max(...fixedEnd) : 0, right = jum.x - 1;
+  const frag = [];
+  rows.forEach(h => {
+    if (Math.abs(h.y - anchor.y) > 16) return;
+    h.items.forEach(i => { const c = cx(i); if (c > left && c < right && !LABEL_TETAP.test(i.s)) frag.push({ cx: c, y: h.y, x: i.x, s: i.s }); });
+  });
+  if (!frag.length) return null;
+  frag.sort((a, b) => a.cx - b.cx);
+  const groups = [];
+  frag.forEach(f => {
+    const g = groups[groups.length - 1];
+    if (g && f.cx - g.cx <= 10) { g.items.push(f); g.cx = g.items.reduce((a, b) => a + b.cx, 0) / g.items.length; }
+    else groups.push({ cx: f.cx, items: [f] });
+  });
+  const cols = groups.map(g => ({ cx: g.cx, name: g.items.sort((a, b) => b.y - a.y || a.x - b.x).map(i => i.s).join(' ') }));
+  const pitch = cols.length > 1 ? Math.min(...cols.slice(1).map((c, i) => c.cx - cols[i].cx)) : 40;
+  return { cols, pitch, tot: { jumlah: cx(jum), rerata: rer ? cx(rer) : null, rank: rnk ? cx(rnk) : null } };
+}
+
+/* Baca baris siswa berdasarkan POSISI kolom (bukan urutan), sehingga sel kosong tidak menggeser kolom lain. */
+function parseByHeader(allRows, h) {
+  const cx = i => i.x + (i.w || 0) / 2;
+  const seen = {};
+  const named = [];
+  h.cols.forEach((c, idx) => {
+    const m = canonName(c.name); if (!m) return;                      // header kosong: kolom dilewati
+    seen[m] = (seen[m] || 0) + 1;
+    named.push({ idx, name: seen[m] > 1 ? `${m} (${seen[m]})` : m });
+  });
+  const tol = Math.max(8, h.pitch / 2);
+  const targets = [...h.cols.map((c, j) => ({ cx: c.cx, kind: 'c', j })), { cx: h.tot.jumlah, kind: 'jumlah' }, { cx: h.tot.rerata, kind: 'rerata' }, { cx: h.tot.rank, kind: 'rank' }].filter(t => t.cx != null);
+  const rows = [];
+  allRows.forEach(r => {
+    const it = [...r.items].sort((a, b) => a.x - b.x);
+    if (it.length < 5 || !/^\d+$/.test(it[0].s)) return;
+    let k = 1; const nama = [];
+    while (k < it.length && !/^\d/.test(it[k].s)) nama.push(it[k++].s);
+    const nums = it.slice(k);
+    if (!nama.length || nums.length < 3 || !nums.every(n => /^\d+(,\d+)?$/.test(n.s))) return;
+    const got = {};
+    nums.forEach(n => {
+      let best = null, d = Infinity;
+      targets.forEach(t => { const dd = Math.abs(cx(n) - t.cx); if (dd < d) { d = dd; best = t; } });
+      if (!best || d > tol) return;                                    // di luar kolom bernama: dilewati
+      const v = parseFloat(n.s.replace(',', '.'));
+      if (best.kind === 'c') got['c' + best.j] = v; else got[best.kind] = v;
+    });
+    const last = nums.map(n => parseFloat(n.s.replace(',', '.')));
+    if (got.rank == null) got.rank = last[last.length - 1];
+    if (got.rerata == null) got.rerata = last[last.length - 2];
+    if (got.jumlah == null) got.jumlah = last[last.length - 3];
+    const nilai = {};
+    named.forEach(c => { nilai[c.name] = got['c' + c.idx] ?? null; });
+    if (Object.values(nilai).filter(v => v !== null).length < 3) return;
+    rows.push({ no: +it[0].s, nama: nama.join(' '), nilai, jumlah: got.jumlah, rerata: got.rerata, rank: got.rank });
+  });
+  return { rows, mapel: named.map(c => c.name) };
+}
+
+function parseLines(lines, header, allRows) {
   const all = lines.join('\n');
   const tahun = (all.match(/(\d{4})\s*\/\s*(\d{4})/) || []).slice(1, 3).join('/');
   const semester = (all.match(/SEMESTER\s*(\d)/i) || [])[1] || '';
   const kelas = ((all.match(/RAPOR\s+([^\n]+)/i) || [])[1] || '').replace(/\s+/g, '').toUpperCase();
+  if (header && allRows) {
+    const r = parseByHeader(allRows, header);
+    if (r.rows.length && r.mapel.length) return { tahun, semester, kelas, mapel: r.mapel, rows: r.rows, fromPdf: true };
+  }
+  /* cadangan bila header tidak terbaca: baca berdasarkan urutan angka, kolom diberi nama sementara */
   const rows = [];
   lines.forEach(l => {
     const t = l.split(/\s+/);
@@ -531,13 +638,11 @@ function parseLines(lines, header) {
     rows.push({ no: +t[0], nama: nama.join(' '), nilai: v, jumlah, rerata, rank });
   });
   const n = rows.length ? rows[0].nilai.length : 0;
-  const fromPdf = !!header && header.length === n;
-  const seen = {};
-  const mapel = (fromPdf ? header : Array.from({ length: n }, (_, i) => 'Mapel ' + (i + 1)))
-    .map(m => { seen[m] = (seen[m] || 0) + 1; return seen[m] > 1 ? `${m} (${seen[m]})` : m; });
+  const mapel = Array.from({ length: n }, (_, i) => 'Mapel ' + (i + 1));
   rows.forEach(r => { const o = {}; mapel.forEach((m, i) => o[m] = r.nilai[i]); r.nilai = o; });
-  return { tahun, semester, kelas, mapel, rows, fromPdf };
+  return { tahun, semester, kelas, mapel, rows, fromPdf: false };
 }
+/* ==== MAPEL:END ==== */
 
 function checkOverwrite() {
   const t = $('pTahun').value.trim(), s = $('pSem').value.trim(), k = $('pKelas').value.trim();
@@ -551,23 +656,23 @@ function renderPreview() {
   const m = parsed.mapel;
   $('pTable').innerHTML = `<thead><tr><th class="l">No</th><th class="l nama">Nama</th>${m.map((x, i) => `<th><input class="hd" data-mi="${i}" value="${esc(x)}" aria-label="Nama mata pelajaran" title="Klik untuk mengubah nama mata pelajaran"></th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr></thead><tbody>` +
     parsed.rows.map((r, i) => `<tr><td class="l">${r.no}</td><td class="l nama"><input class="nm" data-i="${i}" data-f="nama" value="${esc(r.nama)}" aria-label="Nama siswa"></td>` +
-      m.map(x => `<td><input inputmode="decimal" data-i="${i}" data-m="${esc(x)}" value="${esc(r.nilai[x])}" aria-label="${esc(x)}"></td>`).join('') +
+      m.map(x => `<td><input inputmode="decimal" data-i="${i}" data-m="${esc(x)}" value="${esc(r.nilai[x] ?? '')}" aria-label="${esc(x)}"></td>`).join('') +
       `<td id="pj${i}">${fmt(r.jumlah)}</td><td id="pr${i}">${f2(r.rerata)}</td><td>${r.rank}</td></tr>`).join('') + '</tbody>';
 }
 $('pTable').oninput = e => {
   const el = e.target, r = parsed.rows[el.dataset.i]; if (!r) return;
   if (el.dataset.f === 'nama') { r.nama = el.value; return; }
   const num = parseFloat(el.value.replace(',', '.'));
-  el.classList.toggle('bad', isNaN(num) || num < 0 || num > 100);
-  r.nilai[el.dataset.m] = isNaN(num) ? 0 : num;
-  const vals = parsed.mapel.map(x => Number(r.nilai[x]) || 0);
+  el.classList.toggle('bad', el.value.trim() !== '' && (isNaN(num) || num < 0 || num > 100));
+  r.nilai[el.dataset.m] = isNaN(num) ? null : num;
+  const vals = parsed.mapel.map(x => vnum(r.nilai[x])).filter(v => v !== null);
   r.jumlah = Math.round(vals.reduce((a, b) => a + b, 0) * 100) / 100;
   r.rerata = vals.length ? r.jumlah / vals.length : 0;
   $('pj' + el.dataset.i).textContent = fmt(r.jumlah); $('pr' + el.dataset.i).textContent = f2(r.rerata);
 };
 $('pTable').onchange = e => {
   const el = e.target; if (el.dataset.mi === undefined) return;
-  const i = +el.dataset.mi, old = parsed.mapel[i], nw = el.value.trim();
+  const i = +el.dataset.mi, old = parsed.mapel[i], nw = canonName(el.value.trim()) || el.value.trim();
   if (!nw || nw === old) { el.value = old; return; }
   if (parsed.mapel.includes(nw)) { toast('Nama mata pelajaran sudah dipakai.', 'err'); el.value = old; return; }
   parsed.mapel[i] = nw;
@@ -628,8 +733,8 @@ function renderSet() {
 function statRows() {
   const sum = a => a.reduce((x, y) => x + y, 0);
   const defs = [['Rerata', a => sum(a) / a.length], ['Tertinggi', a => Math.max(...a)], ['Terendah', a => Math.min(...a)]];
-  const series = [...curMapel.map(m => curRows.map(r => Number(r.nilai[m]))), curRows.map(r => Number(r.jumlah)), curRows.map(r => Number(r.rerata))];
-  return defs.map(([label, f]) => ({ label, v: series.map((a, i) => (label === 'Rerata' || i === series.length - 1) ? f2(f(a)) : fmt(f(a))) }));
+  const series = [...curMapel.map(m => curRows.map(r => vnum(r.nilai[m])).filter(v => v !== null)), curRows.map(r => Number(r.jumlah)), curRows.map(r => Number(r.rerata))];
+  return defs.map(([label, f]) => ({ label, v: series.map((a, i) => !a.length ? '–' : (label === 'Rerata' || i === series.length - 1) ? f2(f(a)) : fmt(f(a))) }));
 }
 function statTfoot() {
   return statRows().map(s => `<tr><td class="l" colspan="2">${s.label}</td>${s.v.map(x => `<td>${x}</td>`).join('')}<td></td></tr>`).join('');
@@ -637,13 +742,13 @@ function statTfoot() {
 
 function renderTable() {
   const cols = [{ k: 'no', t: 'No', l: 1 }, { k: 'nama', t: 'Nama', l: 1, n: 1 }, ...curMapel.map(m => ({ k: 'm:' + m, t: m })), { k: 'jumlah', t: 'Jumlah' }, { k: 'rerata', t: 'Rerata' }, { k: 'rank', t: 'Rank' }];
-  const get = (r, k) => k.startsWith('m:') ? Number(r.nilai[k.slice(2)]) : r[k];
+  const get = (r, k) => k.startsWith('m:') ? (vnum(r.nilai[k.slice(2)]) ?? -1) : r[k];
   let rows = curRows.filter(r => r.nama.toLowerCase().includes(query.trim().toLowerCase()));
   rows.sort((a, b) => { const x = get(a, sortKey), y = get(b, sortKey); return (typeof x === 'string' ? x.localeCompare(y, 'id') : x - y) * sortDir; });
   const head = '<thead><tr>' + cols.map(c => `<th class="sort ${c.l ? 'l' : ''} ${c.n ? 'nama' : ''} ${sortKey === c.k ? 'act' : ''}" data-k="${esc(c.k)}">${esc(c.t)}<span class="ar">${sortKey === c.k ? (sortDir > 0 ? '▲' : '▼') : '↕'}</span></th>`).join('') + '</tr></thead>';
   const body = rows.map(r =>
     `<tr><td class="l">${esc(r.no)}</td><td class="l nama">${esc(r.nama)}</td>` +
-    curMapel.map(m => `<td><span class="score ${cls(Number(r.nilai[m]))}">${esc(fmt(r.nilai[m]))}</span></td>`).join('') +
+    curMapel.map(m => `<td><span class="score ${vnum(r.nilai[m]) === null ? '' : cls(vnum(r.nilai[m]))}">${esc(vtxt(r.nilai[m]))}</span></td>`).join('') +
     `<td>${esc(fmt(r.jumlah))}</td><td><b>${f2(r.rerata)}</b></td><td><span class="rank ${Number(r.rank) <= 3 ? 'r' + r.rank : ''}">${esc(r.rank)}</span></td></tr>`).join('');
   const foot = curRows.length ? '<tfoot>' + statTfoot() + '</tfoot>' : '';
   $('sTable').innerHTML = head + `<tbody>${body}</tbody>` + foot;
@@ -661,7 +766,7 @@ $('btnCsv').onclick = () => {
   if (!curRows.length) return;
   const q = v => '"' + String(v).replace(/"/g, '""') + '"';
   const lines = [['No', 'Nama', ...curMapel, 'Jumlah', 'Rerata', 'Rank'].map(q).join(';')];
-  curRows.forEach(r => lines.push([r.no, r.nama, ...curMapel.map(m => r.nilai[m]), r.jumlah, r.rerata, r.rank].map(q).join(';')));
+  curRows.forEach(r => lines.push([r.no, r.nama, ...curMapel.map(m => r.nilai[m] ?? ''), r.jumlah, r.rerata, r.rank].map(q).join(';')));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
   a.download = `nilai-${current.t.replace('/', '-')}-sem${current.s}-${current.k}.csv`; a.click(); URL.revokeObjectURL(a.href);
@@ -672,7 +777,7 @@ $('btnPrint').onclick = () => {
   const rowMm = Math.min(8, 168 / (curRows.length + 5));            // tinggi baris menyesuaikan jumlah siswa agar muat satu halaman
   const pfs = Math.max(7, Math.min(11, (rowMm * 2.835 - 2.9) / 1.25));
   const head = `<tr><th>No</th><th>Nama Siswa</th>${curMapel.map(m => `<th>${esc(m)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr>`;
-  const body = curRows.map(r => `<tr><td>${esc(r.no)}</td><td class="l">${esc(r.nama)}</td>${curMapel.map(m => `<td>${esc(fmt(r.nilai[m]))}</td>`).join('')}<td>${esc(fmt(r.jumlah))}</td><td>${f2(r.rerata)}</td><td>${esc(r.rank)}</td></tr>`).join('');
+  const body = curRows.map(r => `<tr><td>${esc(r.no)}</td><td class="l">${esc(r.nama)}</td>${curMapel.map(m => `<td>${esc(vtxt(r.nilai[m]))}</td>`).join('')}<td>${esc(fmt(r.jumlah))}</td><td>${f2(r.rerata)}</td><td>${esc(r.rank)}</td></tr>`).join('');
   $('printArea').innerHTML = `<h1>REKAPITULASI NILAI RAPOR KELAS ${esc(current.k)}</h1><div class="ps">SEMESTER ${esc(current.s)} - TAHUN AJARAN ${esc(current.t)}</div>` +
     `<table style="--pfs:${pfs.toFixed(1)}pt"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${statTfoot()}</tfoot></table>`;
   print();
