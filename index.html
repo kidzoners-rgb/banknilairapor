@@ -115,14 +115,26 @@ details[open]>summary svg{transform:rotate(90deg)}
 .sidefoot{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
 .empty-side{color:var(--mut);font-size:13px;padding:10px;text-align:center}
 main{min-width:0;padding:26px clamp(16px,3vw,36px) 60px}
-.topbar{display:none;align-items:center;gap:10px;margin-bottom:16px}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-height:34px}
+.topbar .iconbtn,.topbar .tbrand{display:none}
+.topbar .btn{margin-left:auto}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px;gap:6px}
+.btn.sm svg{width:14px;height:14px}
+.sidefoot .btn.sm{padding:5px 8px;font-size:11.5px;font-weight:500}
+.sidefoot .ver{font-size:10px;margin:0}
+.sidefoot .copy{font-size:10.5px;margin:0}
+.fab{position:fixed;right:18px;bottom:18px;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow);z-index:90;transition:transform .2s var(--ease),background .2s}
+.fab:hover{transform:scale(1.08) rotate(12deg)}
+.fab:active{transform:scale(.94)}
+.fab svg{width:20px;height:20px}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:25;opacity:0;pointer-events:none;transition:opacity .2s}
 @media(max-width:900px){
   #app{grid-template-columns:1fr}
   aside{position:fixed;left:0;top:0;width:290px;transform:translateX(-102%);transition:transform .25s var(--ease)}
   body.nav-open aside{transform:none;box-shadow:var(--shadow)}
   body.nav-open .scrim{opacity:1;pointer-events:auto}
-  .topbar{display:flex}
+  .topbar .iconbtn,.topbar .tbrand{display:inline-grid}
+  .topbar .tbrand{display:block}
 }
 
 /* ---------- Komponen konten ---------- */
@@ -212,7 +224,7 @@ td input.bad{border-color:var(--low);background:var(--low-bg)}
 .welcome{text-align:center;padding:30px 10px;color:var(--mut)}
 
 /* ---------- Toast & dialog ---------- */
-#toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:100;max-width:calc(100vw - 32px)}
+#toasts{position:fixed;right:16px;bottom:76px;display:grid;gap:8px;z-index:100;max-width:calc(100vw - 32px)}
 .toast{display:flex;gap:10px;align-items:center;padding:12px 16px;border-radius:12px;background:var(--ink);color:var(--bg);box-shadow:var(--shadow);font-size:14px;animation:tin .3s var(--ease)}
 .toast.ok{background:var(--good);color:#fff}.toast.err{background:var(--low);color:#fff}
 .toast.out{opacity:0;transform:translateY(8px);transition:all .25s}
@@ -226,6 +238,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 @page{size:A4 landscape;margin:10mm}
 #printArea{display:none}
 @media print{
+  .fab{display:none!important}
   html,body{background:#fff!important;color:#000!important}
   body>*:not(#printArea){display:none!important}
   #printArea{display:block;font-family:Arial,Helvetica,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -286,18 +299,17 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
     <button class="btn block" id="btnNew"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Unggah rekap PDF</button>
     <div id="menu"></div>
     <div class="sidefoot">
-      <p class="ver" style="text-align:center;margin:0"></p>
+      <button class="btn ghost block sm" id="btnFix"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Rapikan nama mapel</button>
+      <p class="ver" style="margin:0"></p>
       <p class="copy" style="margin:0">© 2026 | Domo</p>
-      <button class="btn ghost block" id="btnTheme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="themeTxt">Mode gelap</span></button>
-      <button class="btn ghost block" id="btnFix"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Rapikan nama mapel</button>
-      <button class="btn danger block" id="btnOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
     </div>
   </aside>
 
   <main>
     <div class="topbar">
       <button class="iconbtn" id="btnBurger" aria-label="Buka menu"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-      <b>Bank Nilai Rapor</b>
+      <b class="tbrand">Bank Nilai Rapor</b>
+      <button class="btn danger sm" id="btnOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
     </div>
 
     <!-- Unggah -->
@@ -344,6 +356,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
   </main>
 </div>
 
+<button id="btnTheme" class="fab" type="button" aria-label="Ganti mode gelap/terang" title="Ganti mode gelap/terang"><svg viewBox="0 0 24 24" id="themeIc"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
 <div id="toasts" aria-live="polite"></div>
 <div id="printArea" aria-hidden="true"></div>
 
@@ -358,7 +371,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
 const KKM = 75;   // batas nilai "perlu perhatian" untuk pewarnaan; ubah sesuai kebutuhan
 const $ = id => document.getElementById(id);
-const VERSI = '22 Nov 2026 · r8';
+const VERSI = '22 Nov 2026 · r9';
 document.querySelectorAll('.ver').forEach(e => e.textContent = 'Versi ' + VERSI);
 let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
 let curRows = [], curMapel = [], sortKey = 'no', sortDir = 1, query = '';
@@ -400,7 +413,10 @@ function confirmBox(title, text, yes = 'Ya, hapus', danger = true) {
 /* ---------- Tema ---------- */
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
-  $('themeTxt').textContent = t === 'dark' ? 'Mode terang' : 'Mode gelap';
+  $('themeIc').innerHTML = t === 'dark'
+    ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+    : '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+  $('btnTheme').title = t === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap';
   try { localStorage.setItem('theme', t); } catch (e) {}
 }
 (function () {
