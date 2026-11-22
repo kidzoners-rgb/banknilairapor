@@ -6,6 +6,9 @@
 <meta name="robots" content="noindex,nofollow">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="theme-color" content="#14624a">
+<link rel="icon" href="fav.ico" sizes="any">
+<link rel="shortcut icon" href="fav.ico">
+<link rel="apple-touch-icon" href="logo.png">
 <title>Bank Nilai Rapor</title>
 <style>
 :root{
@@ -57,7 +60,16 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-b
 .hero>*{position:relative;z-index:1}
 .brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:18px}
 .logo{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.logo{position:relative;flex:none}
 .logo svg{width:22px;height:22px}
+.logo img{display:block;width:100%;height:100%;object-fit:contain}
+.logo.has,aside .logo.has{background:#fff;padding:3px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.logo.has svg{display:none}
+.logo.xl{width:64px;height:64px;border-radius:18px}
+.logo.xl:not(.has){background:var(--pri);color:var(--pri-ink)}
+.logo.xl svg{width:32px;height:32px}
+.loginhead{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.loginhead .sub{margin:2px 0 0}
 .hero h2{font-size:34px;line-height:1.2;font-weight:800;max-width:420px;letter-spacing:-.02em}
 .hero p{opacity:.85;max-width:380px;margin-top:12px}
 .hero ul{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:10px;font-size:14px}
@@ -70,6 +82,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-b
 .pwbox .field{padding-right:44px}
 .pwbox button{position:absolute;right:4px;top:4px;width:34px;height:34px;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--mut)}
 #lmsg{min-height:20px;margin:8px 0 12px;font-size:13px;color:var(--low)}
+.copy{font-size:12px;color:var(--mut);text-align:center;margin-top:6px}
 .ver{font-size:11px;color:var(--mut);margin-top:14px;text-align:center}
 .shake{animation:shake .4s}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
@@ -79,7 +92,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-b
 #app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
 aside{position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px;z-index:30}
 aside .brand{color:var(--ink);padding:4px 6px 18px}
-aside .logo{background:var(--pri);color:var(--pri-ink)}
+aside .logo{background:var(--pri);color:var(--pri-ink);width:44px;height:44px}
 #menu{flex:1;overflow:auto;margin:14px -4px 0;padding:0 4px}
 details.year{margin-bottom:8px}
 details.sem{margin:6px 0 0 12px}
@@ -232,7 +245,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 <!-- ============ LOGIN ============ -->
 <section id="login">
   <div class="hero">
-    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg></span>Bank Nilai Rapor</div>
+    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg><img src="logo.png" alt="" onload="this.parentNode.classList.add('has')" onerror="this.remove()"></span>Bank Nilai Rapor</div>
     <div>
       <h2>Semua nilai rapor, rapi dalam satu tempat.</h2>
       <p>Unggah rekap PDF, periksa, lalu simpan. Lihat peringkat dan rata-rata kelas kapan saja.</p>
@@ -242,12 +255,14 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
         <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Data aman di Google Sheets Anda</li>
       </ul>
     </div>
-    <small style="opacity:.7">Khusus admin</small>
+    <small style="opacity:.7">Khusus admin · © 2026 | Domo</small>
   </div>
   <div class="loginwrap">
     <form class="logincard" id="loginForm" onsubmit="return false">
-      <h1>Selamat datang 👋</h1>
-      <p class="sub">Masuk untuk mengelola bank nilai.</p>
+      <div class="loginhead">
+        <span class="logo xl"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg><img src="logo.png" alt="" onload="this.parentNode.classList.add('has')" onerror="this.remove()"></span>
+        <div><h1>Selamat datang 👋</h1><p class="sub">Masuk untuk mengelola bank nilai.</p></div>
+      </div>
       <label class="lbl" for="pw">Password</label>
       <div class="pwbox">
         <input class="field" id="pw" type="password" autocomplete="current-password" placeholder="Masukkan password">
@@ -256,6 +271,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
       <p id="lmsg" role="alert"></p>
       <button class="btn block" id="btnLogin" type="submit">Masuk</button>
       <p class="ver"></p>
+      <p class="copy">© 2026 | Domo</p>
     </form>
   </div>
 </section>
@@ -264,11 +280,12 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 <div id="app" class="hide">
   <div class="scrim" id="scrim"></div>
   <aside>
-    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg></span>Bank Nilai Rapor</div>
+    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg><img src="logo.png" alt="" onload="this.parentNode.classList.add('has')" onerror="this.remove()"></span>Bank Nilai Rapor</div>
     <button class="btn block" id="btnNew"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Unggah rekap PDF</button>
     <div id="menu"></div>
     <div class="sidefoot">
       <p class="ver" style="text-align:center;margin:0"></p>
+      <p class="copy" style="margin:0">© 2026 | Domo</p>
       <button class="btn ghost block" id="btnTheme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="themeTxt">Mode gelap</span></button>
       <button class="btn ghost block" id="btnFix"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Rapikan nama mapel</button>
       <button class="btn danger block" id="btnOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
@@ -339,7 +356,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
 const KKM = 75;   // batas nilai "perlu perhatian" untuk pewarnaan; ubah sesuai kebutuhan
 const $ = id => document.getElementById(id);
-const VERSI = '21 Nov 2026 · r6';
+const VERSI = '22 Nov 2026 · r7';
 document.querySelectorAll('.ver').forEach(e => e.textContent = 'Versi ' + VERSI);
 let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
 let curRows = [], curMapel = [], sortKey = 'no', sortDir = 1, query = '';
