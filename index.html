@@ -235,6 +235,50 @@ dialog h3{font-size:18px;margin-bottom:6px}
 dialog p{color:var(--mut)}
 dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 
+/* ---- pencarian siswa ---- */
+.gsearch{position:relative;flex:1;max-width:560px;min-width:0}
+.gsearch>svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none;width:17px;height:17px}
+.gsearch .field{padding:9px 38px 9px 38px;border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
+.gsearch kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:600 11px system-ui;color:var(--mut);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:var(--surface2);pointer-events:none}
+.gsearch:focus-within kbd{display:none}
+.gdrop{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:60;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.18);max-height:min(65vh,460px);overflow:auto;padding:6px;animation:rise .18s var(--ease)}
+.ghead,.gmore{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);padding:8px 10px 4px}
+.gmore{text-transform:none;letter-spacing:0;font-weight:500;padding:8px 10px}
+.gmsg{padding:18px 12px;text-align:center;color:var(--mut);font-size:13.5px}
+.gmsg.err{color:var(--low)}
+.gi{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background .12s}
+.gi.on,.gi:hover{background:var(--pri-soft)}
+.gn{display:grid;min-width:0}
+.gn b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gn small{color:var(--mut);font-size:12px}
+mark{background:var(--accent);color:#2a1c00;border-radius:3px;padding:0 1px}
+.av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--pri-ink);background:linear-gradient(135deg,var(--pri),#4fb88a)}
+.av.xl{width:68px;height:68px;font-size:24px}
+.lnk{border:0;background:var(--pri-soft);color:var(--pri);font-weight:600;font-size:12.5px;padding:3px 10px;border-radius:99px;cursor:pointer;transition:filter .15s,transform .15s}
+.lnk:hover{filter:brightness(.95);transform:translateY(-1px)}
+.sthead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.sthead .who{flex:1;min-width:200px}
+.sthead h2{font-size:24px;letter-spacing:-.02em;line-height:1.2}
+.sthead .chips{margin-top:8px}
+.stat strong.up{color:var(--good)}.stat strong.down{color:var(--low)}
+.chartHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.cc{display:flex;gap:6px;flex-wrap:wrap}
+.cchip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:3px 12px;font-size:12.5px;cursor:pointer;transition:all .15s}
+.cchip:hover{border-color:var(--pri);color:var(--pri)}
+.cchip.on{background:var(--pri);border-color:var(--pri);color:var(--pri-ink);font-weight:600}
+.chartBox{position:relative}
+.chartBox svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y;stroke:none;fill:none;stroke-width:0}
+.chartBox text{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.cline{stroke-dasharray:1000;animation:dash .9s var(--ease)}
+@keyframes dash{from{stroke-dashoffset:1000}}
+.cdot{transition:r .15s;cursor:pointer}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);padding:7px 11px;border-radius:9px;font-size:12px;line-height:1.4;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));box-shadow:var(--shadow);z-index:5}
+.tip b{font-size:13px}
+tbody tr.flash td{animation:flash 1.4s}
+@keyframes flash{0%,60%{background:var(--pri-soft)}}
+tr.sep td{border-top:2px solid var(--line)}
+td small.mut{color:var(--mut);margin-left:3px}
+@media(max-width:640px){.topbar{flex-wrap:wrap}.gsearch{order:5;flex:1 0 100%;max-width:none}.gsearch kbd{display:none}.sthead h2{font-size:20px}}
 @page{size:A4 landscape;margin:10mm}
 #printArea{display:none}
 @media print{
@@ -309,6 +353,12 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
     <div class="topbar">
       <button class="iconbtn" id="btnBurger" aria-label="Buka menu"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
       <b class="tbrand">Bank Nilai Rapor</b>
+      <div class="gsearch" id="gsearch">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="gq" class="field" type="text" placeholder="Cari nama siswa di semua kelas…" autocomplete="off" spellcheck="false" aria-label="Cari siswa di semua kelas" role="combobox" aria-expanded="false" aria-controls="gdrop">
+        <kbd>/</kbd>
+        <div id="gdrop" class="gdrop hide" role="listbox"></div>
+      </div>
       <button class="btn danger sm" id="btnOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
     </div>
 
@@ -353,6 +403,9 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
       </div>
       <div id="sBody"></div>
     </div>
+
+    <!-- Profil & riwayat nilai siswa -->
+    <div id="vStudent" class="view hide"></div>
   </main>
 </div>
 
@@ -368,10 +421,10 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* Hanya URL web app yang ada di sini. Password & ID spreadsheet tersimpan di server (Script Properties). */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDWqhFDakCPg8t11wg6Kun8wqWww9LKzWSPIsZPKCuaAn0MF_YWROEGuaxU0PcBm4yoQ/exec';
 const KKM = 75;   // batas nilai "perlu perhatian" untuk pewarnaan; ubah sesuai kebutuhan
 const $ = id => document.getElementById(id);
-const VERSI = '22 Nov 2026 · r10';
+const VERSI = '22 Nov 2026 · r12';
 document.querySelectorAll('.ver').forEach(e => e.textContent = 'Versi ' + VERSI);
 let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
 let curRows = [], curMapel = [], sortKey = 'no', sortDir = 1, query = '';
@@ -436,6 +489,7 @@ async function doLogin() {
 }
 function logout() {
   if (token) api('logout');
+  idx = null; stCur = null; prevCurrent = null; $('gq').value = '';
   token = ''; sessionStorage.removeItem('tk');
   $('app').classList.add('hide'); $('login').classList.remove('hide'); document.body.classList.remove('nav-open');
 }
@@ -459,7 +513,7 @@ $('btnFix').onclick = async () => {
     if (sv.ok && kb !== x.kelas) await api('delete', { tahun: x.tahun, semester: x.semester, kelas: x.kelas });
     if (sv.ok) fixed++; else fail++;
   }
-  b.disabled = false; b.innerHTML = old;
+  b.disabled = false; b.innerHTML = old; idx = null;
   if (current && kelasBaku(current.k) !== current.k) { current = null; show('upload'); }
   await loadMenu();
   if (current) openSet(current.t, current.s, current.k);
@@ -507,7 +561,7 @@ function markActive() {
 }
 $('btnBurger').onclick = () => document.body.classList.add('nav-open');
 $('scrim').onclick = () => document.body.classList.remove('nav-open');
-function show(v) { $('vUpload').classList.toggle('hide', v !== 'upload'); $('vSet').classList.toggle('hide', v !== 'set'); scrollTo({ top: 0 }); }
+function show(v) { $('vUpload').classList.toggle('hide', v !== 'upload'); $('vSet').classList.toggle('hide', v !== 'set'); $('vStudent').classList.toggle('hide', v !== 'student'); scrollTo({ top: 0 }); }
 
 /* ---------- Unggah & baca PDF ---------- */
 function setStep(n) { [1, 2, 3].forEach(i => { const s = $('st' + i); s.classList.toggle('on', i === n); s.classList.toggle('done', i < n); }); }
@@ -785,7 +839,7 @@ $('btnSave').onclick = async () => {
   const b = $('btnSave'); b.disabled = true; const old = b.innerHTML; b.innerHTML = '<span class="spin"></span>Menyimpan…'; setStep(3);
   const j = await api('save', { tahun, semester, kelas, rows: parsed.rows });
   b.disabled = false; b.innerHTML = old;
-  if (j.ok) { toast(`Tersimpan: ${j.saved} siswa.`, 'ok'); resetUpload(); await loadMenu(); openSet(tahun, semester, kelas); }
+  if (j.ok) { idx = null; toast(`Tersimpan: ${j.saved} siswa.`, 'ok'); resetUpload(); await loadMenu(); openSet(tahun, semester, kelas); }
   else { setStep(2); toast(j.error, 'err'); }
 };
 
@@ -861,6 +915,216 @@ $('vSet').addEventListener('click', e => {
   renderTable();
 });
 
+/* ---------- Pencarian siswa (lintas kelas) ---------- */
+const URUT_MAPEL = ['Agama', 'PKn', 'BI', 'MTK', 'IPA', 'IPS', 'IPAS', 'SBdP', 'PJOK', 'B. Inggris', 'MeKarSi'];
+let idx = null, idxLoading = null, gAct = -1, gList = [], prevCurrent = null, stCur = null, chartKey = 'rerata';
+const normNama = n => String(n ?? '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const initials = n => n.split(' ').filter(w => /[A-Z0-9]/i.test(w[0])).slice(0, 2).map(w => w[0]).join('');
+const shortYear = t => { const m = String(t).match(/(\d{4})\D+(\d{4})/); return m ? m[1].slice(2) + '/' + m[2].slice(2) : String(t); };
+const avgOf = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const f2n = v => v === null || v === undefined ? '–' : f2(v);
+
+function buildIndex(rows) {
+  const m = new Map();
+  rows.forEach(r => {
+    const key = normNama(r.nama); if (!key) return;
+    const nilai = {};
+    Object.keys(r.nilai || {}).forEach(k => { const n = canonName(k) || k; if (!(n in nilai) || nilai[n] === null) nilai[n] = vnum(r.nilai[k]); });
+    let st = m.get(key);
+    if (!st) m.set(key, st = { key, nama: String(r.nama).toUpperCase().replace(/\s+/g, ' ').trim(), recs: [] });
+    st.recs.push({ tahun: String(r.tahun), semester: String(r.semester), kelas: String(r.kelas), no: r.no, nilai, jumlah: Number(r.jumlah) || 0, rerata: Number(r.rerata) || 0, rank: (r.rank === '' || r.rank == null) ? null : Number(r.rank) });
+  });
+  m.forEach(st => st.recs.sort((a, b) => a.tahun.localeCompare(b.tahun) || a.semester.localeCompare(b.semester)));
+  return m;
+}
+async function doLoad() {
+  let rows = [];
+  const j = await api('all');                                         // satu panggilan (butuh Code.gs terbaru)
+  if (j.ok) rows = j.rows || [];
+  else if (/tidak dikenal/i.test(j.error || '')) {                    // server lama: ambil per kelas
+    const list = sets.length ? sets : ((await api('list')).sets || []);
+    const q = [...list]; let done = 0;
+    gMsg(`<span class="spin"></span> Memuat data siswa… 0/${list.length}`);
+    await Promise.all(Array.from({ length: 4 }, async () => {
+      while (q.length) {
+        const x = q.shift();
+        const g = await api('get', { tahun: x.tahun, semester: x.semester, kelas: x.kelas });
+        if (g.ok) g.rows.forEach(r => rows.push({ ...r, tahun: x.tahun, semester: x.semester, kelas: x.kelas }));
+        gMsg(`<span class="spin"></span> Memuat data siswa… ${++done}/${list.length}`);
+      }
+    }));
+  } else throw new Error(j.error || 'Gagal memuat data');
+  return buildIndex(rows);
+}
+function loadIndex() {
+  if (idx) return Promise.resolve(idx);
+  if (!idxLoading) idxLoading = doLoad().then(r => (idx = r)).finally(() => { idxLoading = null; });
+  return idxLoading;
+}
+
+/* ---- kotak pencarian & daftar saran ---- */
+const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function hl(t, toks) {
+  if (!toks.length) return esc(t);
+  const re = new RegExp('(' + toks.map(reEsc).join('|') + ')', 'gi');
+  return t.split(re).map((p, i) => i % 2 ? `<mark>${esc(p)}</mark>` : esc(p)).join('');
+}
+function gOpen(html) { const d = $('gdrop'); d.innerHTML = html; d.classList.remove('hide'); $('gq').setAttribute('aria-expanded', 'true'); }
+function gClose() { $('gdrop').classList.add('hide'); $('gq').setAttribute('aria-expanded', 'false'); gAct = -1; }
+function gMsg(html) { if (!idx && !$('gdrop').classList.contains('hide')) $('gdrop').innerHTML = `<div class="gmsg">${html}</div>`; }
+function gItems(list, toks) {
+  return list.slice(0, 8).map((st, i) => {
+    const kl = [...new Set(st.recs.map(r => r.kelas))].join(', ');
+    return `<div class="gi ${i === gAct ? 'on' : ''}" role="option" data-i="${i}"><span class="av">${esc(initials(st.nama))}</span><span class="gn"><b>${hl(st.nama, toks)}</b><small>Kelas ${esc(kl)} · ${st.recs.length} semester</small></span></div>`;
+  }).join('');
+}
+async function gUpdate() {
+  if ($('app').classList.contains('hide')) return;
+  if (!idx) {
+    gOpen('<div class="gmsg"><span class="spin"></span> Memuat data siswa…</div>');
+    try { await loadIndex(); }
+    catch (e) { gOpen(`<div class="gmsg err">${esc(e.message)}<br><button class="lnk" id="gretry" style="margin-top:8px">Coba lagi</button></div>`); return; }
+    if (document.activeElement !== $('gq')) { gClose(); return; }
+  }
+  const query = $('gq').value, toks = normNama(query).split(' ').filter(Boolean);
+  if (!idx.size) { gOpen('<div class="gmsg">Belum ada data tersimpan.</div>'); gList = []; return; }
+  if (!toks.length) {                                                  // belum mengetik: tampilkan pencarian terakhir
+    let rec = []; try { rec = JSON.parse(localStorage.getItem('recent') || '[]'); } catch (e) {}
+    gList = rec.map(k => idx.get(k)).filter(Boolean); gAct = gList.length ? 0 : -1;
+    gOpen(gList.length ? `<div class="ghead">Terakhir dibuka</div>${gItems(gList, [])}` : `<div class="gmsg">Ketik nama siswa. Hasilnya dari semua kelas dan semester.</div>`);
+    return;
+  }
+  const found = [];
+  idx.forEach(st => { if (toks.every(t => st.key.includes(t))) found.push({ st, sc: st.key.startsWith(toks[0]) ? 0 : st.key.includes(' ' + toks[0]) ? 1 : 2 }); });
+  found.sort((a, b) => a.sc - b.sc || a.st.nama.localeCompare(b.st.nama, 'id'));
+  gList = found.map(x => x.st); gAct = gList.length ? 0 : -1;
+  if (!gList.length) { gOpen(`<div class="gmsg">Tidak ada siswa bernama “${esc(query.trim())}”.</div>`); return; }
+  gOpen(`<div class="ghead">${gList.length} siswa ditemukan</div>${gItems(gList, toks)}${gList.length > 8 ? `<div class="gmore">+${gList.length - 8} hasil lainnya. Ketik lebih lengkap untuk mempersempit.</div>` : ''}`);
+}
+function gMark() { document.querySelectorAll('#gdrop .gi').forEach((e, i) => { e.classList.toggle('on', i === gAct); if (i === gAct) e.scrollIntoView({ block: 'nearest' }); }); }
+$('gq').addEventListener('input', gUpdate);
+$('gq').addEventListener('focus', gUpdate);
+$('gq').addEventListener('keydown', e => {
+  const n = Math.min(gList.length, 8);
+  if (e.key === 'ArrowDown' && n) { e.preventDefault(); gAct = (gAct + 1) % n; gMark(); }
+  else if (e.key === 'ArrowUp' && n) { e.preventDefault(); gAct = (gAct - 1 + n) % n; gMark(); }
+  else if (e.key === 'Enter' && gList[gAct]) { e.preventDefault(); bukaSiswa(gList[gAct].key); }
+  else if (e.key === 'Escape') { gClose(); $('gq').blur(); }
+});
+$('gdrop').addEventListener('mousedown', e => e.preventDefault());
+$('gdrop').addEventListener('click', e => {
+  const it = e.target.closest('.gi'); if (it && gList[+it.dataset.i]) bukaSiswa(gList[+it.dataset.i].key);
+  if (e.target.id === 'gretry') gUpdate();
+});
+document.addEventListener('click', e => { if (!e.target.closest('#gsearch')) gClose(); });
+document.addEventListener('keydown', e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '');
+  if (((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) && !$('app').classList.contains('hide')) { e.preventDefault(); $('gq').focus(); $('gq').select(); }
+});
+
+/* ---- halaman siswa ---- */
+function bukaSiswa(key) {
+  const st = idx && idx.get(key); if (!st) return;
+  gClose(); $('gq').blur(); $('gq').value = st.nama;
+  try { const r = JSON.parse(localStorage.getItem('recent') || '[]').filter(k => k !== key); r.unshift(key); localStorage.setItem('recent', JSON.stringify(r.slice(0, 5))); } catch (e) {}
+  if (current) prevCurrent = current;
+  current = null; markActive();
+  stCur = st; chartKey = 'rerata'; renderSiswa(); show('student');
+  document.body.classList.remove('nav-open');
+}
+function urutMapel(recs) {
+  const a = []; recs.forEach(r => Object.keys(r.nilai).forEach(k => { if (!a.includes(k)) a.push(k); }));
+  const o = k => { const i = URUT_MAPEL.indexOf(k); return i < 0 ? 99 : i; };
+  return a.sort((x, y) => o(x) - o(y));
+}
+function totalSiswa(r) { const x = sets.find(z => z.tahun === r.tahun && z.semester === r.semester && z.kelas === r.kelas); return x && x.jumlahSiswa ? x.jumlahSiswa : ''; }
+function renderSiswa() {
+  const st = stCur, recs = st.recs, mapel = urutMapel(recs);
+  const rerataAll = avgOf(recs.map(r => r.rerata).filter(v => v > 0));
+  const mAvg = mapel.map(m => ({ m, v: avgOf(recs.map(r => vnum(r.nilai[m])).filter(v => v !== null)) })).filter(x => x.v !== null);
+  const best = mAvg.length ? mAvg.reduce((a, b) => b.v > a.v ? b : a) : null;
+  const d = recs.length > 1 ? recs[recs.length - 1].rerata - recs[recs.length - 2].rerata : null;
+  const kelas = [...new Set(recs.map(r => r.kelas))], th = [...new Set(recs.map(r => r.tahun))];
+  const dTxt = d === null ? '–' : (d > 0.004 ? '▲ +' : d < -0.004 ? '▼ ' : '● ') + f2(d);
+  const head = `<tr><th class="l">Tahun Pelajaran</th><th>Semester</th><th>Kelas</th>${mapel.map(m => `<th>${esc(m)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr>`;
+  const body = recs.map((r, i) => {
+    const sep = i > 0 && recs[i - 1].tahun !== r.tahun ? 'sep' : '', tot = totalSiswa(r);
+    return `<tr class="${sep}"><td class="l"><b>${esc(r.tahun)}</b></td><td>${esc(r.semester)}</td><td><button class="lnk" data-t="${esc(r.tahun)}" data-s="${esc(r.semester)}" data-k="${esc(r.kelas)}" title="Buka data kelas ${esc(r.kelas)}">${esc(r.kelas)}</button></td>` +
+      mapel.map(m => { const v = vnum(r.nilai[m]); return `<td><span class="score ${v === null ? '' : cls(v)}">${vtxt(v)}</span></td>`; }).join('') +
+      `<td>${esc(fmt(r.jumlah))}</td><td><b>${f2(r.rerata)}</b></td><td>${r.rank == null ? '–' : `<span class="rank ${r.rank <= 3 ? 'r' + r.rank : ''}">${r.rank}</span>${tot ? `<small class="mut">/${tot}</small>` : ''}`}</td></tr>`;
+  }).join('');
+  const foot = `<tr><td class="l" colspan="3">Rata-rata</td>${mapel.map(m => { const v = avgOf(recs.map(r => vnum(r.nilai[m])).filter(x => x !== null)); return `<td>${f2n(v)}</td>`; }).join('')}<td>${f2n(avgOf(recs.map(r => r.jumlah)))}</td><td>${f2n(rerataAll)}</td><td></td></tr>`;
+  $('vStudent').innerHTML =
+    `<div class="card sthead"><span class="av xl">${esc(initials(st.nama))}</span>
+      <div class="who"><h2>${esc(st.nama)}</h2><div class="chips"><span class="chip">${recs.length} semester tercatat</span><span class="chip">Tahun ${esc(th.length > 1 ? th[0] + ' – ' + th[th.length - 1] : th[0])}</span>${kelas.map(k => `<span class="chip">Kelas ${esc(k)}</span>`).join('')}</div></div>
+      <div class="actions"><button class="btn soft sm" data-act="csv"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Ekspor CSV</button><button class="btn ghost sm" data-act="print"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Cetak</button><button class="btn ghost sm" data-act="close"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>Tutup</button></div></div>
+    <div class="stats">
+      <div class="stat"><small>Semester tercatat</small><strong>${recs.length}</strong><span>${esc(th.join(', '))}</span></div>
+      <div class="stat"><small>Rerata keseluruhan</small><strong>${f2n(rerataAll)}</strong><span>dari ${recs.length} semester</span></div>
+      <div class="stat"><small>Mapel terkuat</small><strong>${best ? esc(best.m) : '–'}</strong><span>${best ? 'rerata ' + f2(best.v) : '&nbsp;'}</span></div>
+      <div class="stat"><small>Perubahan terakhir</small><strong class="${d === null ? '' : d > 0.004 ? 'up' : d < -0.004 ? 'down' : ''}">${dTxt}</strong><span>${d === null ? 'butuh 2 semester' : 'dibanding semester sebelumnya'}</span></div>
+    </div>
+    <div class="card"><div class="chartHead"><b>Perkembangan nilai</b><div class="cc" id="cchips">${['rerata', ...mapel].map(k => `<button class="cchip ${k === chartKey ? 'on' : ''}" data-key="${esc(k)}">${k === 'rerata' ? 'Rerata' : esc(k)}</button>`).join('')}</div></div><div class="chartBox" id="chartBox"></div></div>
+    <div class="card"><h3 style="margin:0 0 12px">Riwayat nilai</h3><div class="wrap"><table id="stTable"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div></div>`;
+  drawChart();
+}
+function drawChart() {
+  const st = stCur, n = st.recs.length, key = chartKey;
+  const W = 720, H = 240, L = 42, R = 24, T = 26, B = 50;
+  const pts = st.recs.map((r, i) => ({ i, r, v: key === 'rerata' ? (r.rerata > 0 ? r.rerata : null) : vnum(r.nilai[key]) }));
+  const vals = pts.map(p => p.v).filter(v => v !== null);
+  if (!vals.length) { $('chartBox').innerHTML = '<div class="gmsg">Belum ada nilai untuk ditampilkan.</div>'; return; }
+  let lo = Math.max(0, Math.floor(Math.min(...vals) - 3)), hi = Math.min(100, Math.ceil(Math.max(...vals) + 3));
+  if (hi - lo < 8) { lo = Math.max(0, lo - 4); hi = Math.min(100, hi + 4); }
+  const X = i => n === 1 ? W / 2 : L + i * (W - L - R) / (n - 1), Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const ok = pts.filter(p => p.v !== null);
+  const line = ok.map((p, k) => (k ? 'L' : 'M') + X(p.i).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
+  const area = ok.length > 1 ? line + ` L${X(ok[ok.length - 1].i).toFixed(1)} ${H - B} L${X(ok[0].i).toFixed(1)} ${H - B} Z` : '';
+  const grid = [0, 1, 2, 3, 4].map(k => { const v = lo + (hi - lo) * k / 4, y = Y(v); return `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" style="stroke:var(--line)" stroke-dasharray="3 4"/><text x="${L - 8}" y="${y + 4}" text-anchor="end" font-size="11" style="fill:var(--mut)">${Math.round(v)}</text>`; }).join('');
+  const lbl = pts.map(p => (n <= 8 || p.i % 2 === 0) ? `<text x="${X(p.i)}" y="${H - B + 18}" text-anchor="middle" font-size="11.5" font-weight="600" style="fill:var(--ink)">S${esc(p.r.semester)}</text><text x="${X(p.i)}" y="${H - B + 32}" text-anchor="middle" font-size="10.5" style="fill:var(--mut)">${esc(shortYear(p.r.tahun))}</text>` : '').join('');
+  const dots = ok.map(p => `<circle class="cdot" data-i="${p.i}" cx="${X(p.i)}" cy="${Y(p.v)}" r="5" stroke-width="2.5" style="fill:var(--surface);stroke:var(--pri)"/>${n <= 8 ? `<text x="${X(p.i)}" y="${Y(p.v) - 11}" text-anchor="middle" font-size="11" font-weight="700" style="fill:var(--ink)">${key === 'rerata' ? f2(p.v) : fmt(p.v)}</text>` : ''}`).join('');
+  $('chartBox').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik perkembangan ${key === 'rerata' ? 'rerata' : esc(key)} per semester"><defs><linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--pri);stop-opacity:.28"/><stop offset="1" style="stop-color:var(--pri);stop-opacity:0"/></linearGradient></defs>${grid}${area ? `<path d="${area}" fill="url(#gr)"/>` : ''}${ok.length > 1 ? `<path class="cline" d="${line}" pathLength="1000" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--pri)"/>` : ''}${dots}${lbl}</svg><div class="tip hide" id="tip"></div>`;
+  const svg = $('chartBox').firstChild, tip = $('tip');
+  const near = e => { const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W; return ok.reduce((a, b) => Math.abs(X(b.i) - x) < Math.abs(X(a.i) - x) ? b : a); };
+  svg.addEventListener('pointermove', e => {
+    const p = near(e);
+    svg.querySelectorAll('.cdot').forEach(c => c.setAttribute('r', +c.dataset.i === p.i ? 8 : 5));
+    tip.innerHTML = `${esc(p.r.tahun)} · Semester ${esc(p.r.semester)}<br><b>${key === 'rerata' ? 'Rerata' : esc(key)} ${f2(p.v)}</b> · Kelas ${esc(p.r.kelas)}`;
+    tip.style.left = (X(p.i) / W * 100) + '%'; tip.style.top = (Y(p.v) / H * 100) + '%'; tip.classList.remove('hide');
+  });
+  svg.addEventListener('pointerleave', () => { tip.classList.add('hide'); svg.querySelectorAll('.cdot').forEach(c => c.setAttribute('r', 5)); });
+  svg.addEventListener('click', e => {
+    const p = near(e), tr = $('stTable').querySelectorAll('tbody tr')[p.i]; if (!tr) return;
+    tr.scrollIntoView({ behavior: 'smooth', block: 'center' }); tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
+  });
+}
+function csvSiswa() {
+  const st = stCur, mapel = urutMapel(st.recs), q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = [['Nama', 'Tahun Pelajaran', 'Semester', 'Kelas', ...mapel, 'Jumlah', 'Rerata', 'Rank'].map(q).join(';')];
+  st.recs.forEach(r => lines.push([st.nama, r.tahun, r.semester, r.kelas, ...mapel.map(m => r.nilai[m] ?? ''), r.jumlah, r.rerata, r.rank ?? ''].map(q).join(';')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'riwayat-nilai-' + st.nama.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.csv'; a.click(); URL.revokeObjectURL(a.href);
+  toast('File CSV diunduh.', 'ok');
+}
+function cetakSiswa() {
+  const st = stCur, mapel = urutMapel(st.recs);
+  const head = `<tr><th>Tahun Pelajaran</th><th>Semester</th><th>Kelas</th>${mapel.map(m => `<th>${esc(m)}</th>`).join('')}<th>Jumlah</th><th>Rerata</th><th>Rank</th></tr>`;
+  const body = st.recs.map(r => `<tr><td>${esc(r.tahun)}</td><td>${esc(r.semester)}</td><td>${esc(r.kelas)}</td>${mapel.map(m => `<td>${esc(vtxt(r.nilai[m]))}</td>`).join('')}<td>${esc(fmt(r.jumlah))}</td><td>${f2(r.rerata)}</td><td>${r.rank ?? '–'}</td></tr>`).join('');
+  const foot = `<tr><td colspan="3">Rata-rata</td>${mapel.map(m => `<td>${f2n(avgOf(st.recs.map(r => vnum(r.nilai[m])).filter(x => x !== null)))}</td>`).join('')}<td>${f2n(avgOf(st.recs.map(r => r.jumlah)))}</td><td>${f2n(avgOf(st.recs.map(r => r.rerata).filter(v => v > 0)))}</td><td></td></tr>`;
+  $('printArea').innerHTML = `<h1>RIWAYAT NILAI RAPOR</h1><div class="ps"><b>${esc(st.nama)}</b></div><table style="--pfs:10pt"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
+  print();
+}
+$('vStudent').addEventListener('click', e => {
+  const k = e.target.closest('.cchip');
+  if (k) { chartKey = k.dataset.key; document.querySelectorAll('#cchips .cchip').forEach(x => x.classList.toggle('on', x === k)); drawChart(); return; }
+  const l = e.target.closest('.lnk'); if (l) { openSet(l.dataset.t, l.dataset.s, l.dataset.k); return; }
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  if (a.dataset.act === 'csv') csvSiswa();
+  else if (a.dataset.act === 'print') cetakSiswa();
+  else if (a.dataset.act === 'close') { stCur = null; $('gq').value = ''; if (prevCurrent) openSet(prevCurrent.t, prevCurrent.s, prevCurrent.k); else show('upload'); }
+});
+
 /* ---------- Aksi: ekspor, cetak, hapus ---------- */
 $('btnCsv').onclick = () => {
   if (!curRows.length) return;
@@ -887,7 +1151,7 @@ $('btnDel').onclick = async () => {
   if (!current) return;
   if (!await confirmBox('Hapus data ini?', `Nilai Kelas ${current.k}, semester ${current.s}, ${current.t} akan dihapus dari bank nilai dan tidak bisa dikembalikan.`)) return;
   const j = await api('delete', { tahun: current.t, semester: current.s, kelas: current.k });
-  if (j.ok) { current = null; await loadMenu(); show('upload'); resetUpload(); toast('Data dihapus.', 'ok'); } else toast(j.error, 'err');
+  if (j.ok) { idx = null; current = null; await loadMenu(); show('upload'); resetUpload(); toast('Data dihapus.', 'ok'); } else toast(j.error, 'err');
 };
 
 if (token) start();
