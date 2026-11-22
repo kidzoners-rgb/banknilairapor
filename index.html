@@ -65,11 +65,13 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-b
 .logo img{display:block;width:100%;height:100%;object-fit:contain}
 .logo.has,aside .logo.has{background:#fff;padding:3px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .logo.has svg{display:none}
-.logo.xl{width:64px;height:64px;border-radius:18px}
+.logo.xl{width:60px;height:60px;border-radius:16px}
 .logo.xl:not(.has){background:var(--pri);color:var(--pri-ink)}
 .logo.xl svg{width:32px;height:32px}
 .loginhead{display:flex;align-items:center;gap:16px;margin-bottom:24px}
-.loginhead .sub{margin:2px 0 0}
+.logincard .loginhead h1{line-height:1.2;margin:0}
+.logincard .loginhead .sub{margin:4px 0 0;line-height:1.35}
+.loginhead>div{min-width:0}
 .hero h2{font-size:34px;line-height:1.2;font-weight:800;max-width:420px;letter-spacing:-.02em}
 .hero p{opacity:.85;max-width:380px;margin-top:12px}
 .hero ul{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:10px;font-size:14px}
@@ -356,7 +358,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 const API_URL = 'https://script.google.com/macros/s/AKfycbxGscr-_YXwP-4th5d6qBbTp4VLqC1oEcqtoFMJ41CnAhCYkmq2jKnC8vgNDQI0ENd4ug/exec';
 const KKM = 75;   // batas nilai "perlu perhatian" untuk pewarnaan; ubah sesuai kebutuhan
 const $ = id => document.getElementById(id);
-const VERSI = '22 Nov 2026 · r7';
+const VERSI = '22 Nov 2026 · r8';
 document.querySelectorAll('.ver').forEach(e => e.textContent = 'Versi ' + VERSI);
 let token = sessionStorage.getItem('tk') || '', sets = [], parsed = null, current = null;
 let curRows = [], curMapel = [], sortKey = 'no', sortDir = 1, query = '';
